@@ -26,8 +26,16 @@ type redisPinger interface {
 }
 
 // NewHandler creates a new health handler.
-func NewHandler(db *pgxpool.Pool, redis *redis.Client) *Handler {
-	return &Handler{db: db, redis: redis}
+// Concrete nil pointers must not be stored in the pinger interfaces (typed-nil trap).
+func NewHandler(db *pgxpool.Pool, redisClient *redis.Client) *Handler {
+	h := &Handler{}
+	if db != nil {
+		h.db = db
+	}
+	if redisClient != nil {
+		h.redis = redisClient
+	}
+	return h
 }
 
 // HealthResponse is the JSON structure for health checks.

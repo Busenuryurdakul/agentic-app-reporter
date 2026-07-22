@@ -4,7 +4,7 @@ Product: **AI Development Configuration Studio**
 
 ## Repository layout
 
-**Status:** Accepted (updated)
+**Status:** Accepted
 
 Monorepo root: `agentic-app-reporter`
 
@@ -29,8 +29,13 @@ Cursor, OpenCode, Codex, Claude Code, Gemma are optional targets/providers — n
 
 ## LLM provider architecture
 
-Domain depends on `LLMProvider` only (implement in generation phase).
-First provider: backend-orchestrated Gemma.
+**Status:** Done (Phase 3)
+
+- Domain depends on `LLMProvider` only (`backend/internal/domain/llm`).
+- First concrete providers: `mock` (dev/CI) and `gemma` (OpenAI-compatible HTTP).
+- Application use-cases call the port; infrastructure registry selects the adapter.
+- Context assembly and prompt building live in the application layer; HTTP handlers never
+  accept client-assembled prompts or profile/answer payloads for generation.
 
 ---
 
@@ -49,7 +54,8 @@ Reuse Tenant `Workspace` in backend. No new Workspace bounded context.
 
 ## Monitoring storage
 
-Do not store raw prompts/outputs by default.
+Do not store raw prompts/outputs by default. Persist Markdown documents + generation
+metadata (`provider_name`, `model_name`, `source_fingerprint`, status).
 
 ---
 
@@ -67,5 +73,5 @@ Do not store raw prompts/outputs by default.
 |-------|--------|
 | 1 Foundation | Done (auth, org, workspace, shell) |
 | 2 Profile + Questionnaire | Done (API + Turkish UI) |
-| 3 Generation / LLMProvider | Not started |
+| 3 Generation / LLMProvider | Done (mock + Gemma, documents API, Üret UI) |
 | 4+ Scoring, monitoring, export | Not started |

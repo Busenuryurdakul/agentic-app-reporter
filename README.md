@@ -47,14 +47,14 @@ make run
 API: http://localhost:8080  
 Health: http://localhost:8080/health/live
 
-See `backend/STUDIO.md` for Phase 1 notes.
+See `backend/STUDIO.md` for Phase 1–3 backend notes (including LLM + document APIs).
 
 ## Architecture
 
 - Separate apps in a monorepo
 - Backend extends masterfabric-go conventions
-- LLM via provider abstraction (Phase 3) — not coupled to Gemma or Cursor
-- Docs: `docs/architecture-decisions.md`
+- LLM via `LLMProvider` abstraction (Phase 3 Done) — mock/Gemma adapters; not coupled to Cursor
+- Docs: `docs/architecture-decisions.md`, plan: `PHASE3_PLAN.md`
 
 ## Remote
 

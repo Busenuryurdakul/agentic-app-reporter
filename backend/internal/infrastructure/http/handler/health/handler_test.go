@@ -27,3 +27,12 @@ func TestReadiness_DoesNotExposeInternalErrors(t *testing.T) {
 	assert.NotContains(t, rec.Body.String(), "secret-db")
 	assert.Contains(t, rec.Body.String(), "unhealthy")
 }
+
+func TestNewHandler_NilRedisDoesNotPanicOnReadiness(t *testing.T) {
+	handler := NewHandler(nil, nil)
+	req := httptest.NewRequest(http.MethodGet, "/health/ready", nil)
+	rec := httptest.NewRecorder()
+	handler.Readiness(rec, req)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Contains(t, rec.Body.String(), "ready")
+}

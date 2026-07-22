@@ -321,7 +321,7 @@ All configuration is via environment variables with sensible defaults:
 | `SERVER_HOST` | `0.0.0.0` | Bind host |
 | `SERVER_PORT` | `8080` | Bind port |
 | `SERVER_READ_TIMEOUT_SECONDS` | `15` | HTTP read timeout |
-| `SERVER_WRITE_TIMEOUT_SECONDS` | `15` | HTTP write timeout |
+| `SERVER_WRITE_TIMEOUT_SECONDS` | `90` | HTTP write timeout (raised for sync LLM generate) |
 | `SERVER_IDLE_TIMEOUT_SECONDS` | `60` | HTTP idle timeout |
 | `MAX_BODY_BYTES` | `1048576` | Maximum request body size (1 MiB) |
 | `CORS_ALLOWED_ORIGINS` | *(empty)* | Comma-separated allowed CORS origins; credentials disabled when empty or `*` |

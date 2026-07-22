@@ -18,7 +18,20 @@ type Config struct {
 	JWT         JWTConfig
 	Kafka       KafkaConfig
 	WebSocket   WebSocketConfig
+	LLM         LLMConfig
 	Log         LogConfig
+}
+
+// LLMConfig holds provider-agnostic LLM settings (Phase 3).
+type LLMConfig struct {
+	Enabled               bool
+	Provider              string // registry key, e.g. "mock" (S1); "gemma" later
+	BaseURL               string
+	APIKey                string
+	Model                 string
+	TimeoutSeconds        int
+	MaxRetries            int
+	AllowMockInProduction bool
 }
 
 // IsProduction reports whether the process is running in a production-like environment.
@@ -119,10 +132,11 @@ func Load() *Config {
 	return &Config{
 		Environment: envOrDefault("APP_ENV", "development"),
 		Server: ServerConfig{
-			Host:               envOrDefault("SERVER_HOST", "0.0.0.0"),
-			Port:               envOrDefaultInt("SERVER_PORT", 8080),
-			ReadTimeout:        time.Duration(envOrDefaultInt("SERVER_READ_TIMEOUT_SECONDS", 15)) * time.Second,
-			WriteTimeout:       time.Duration(envOrDefaultInt("SERVER_WRITE_TIMEOUT_SECONDS", 15)) * time.Second,
+			Host:        envOrDefault("SERVER_HOST", "0.0.0.0"),
+			Port:        envOrDefaultInt("SERVER_PORT", 8080),
+			ReadTimeout: time.Duration(envOrDefaultInt("SERVER_READ_TIMEOUT_SECONDS", 15)) * time.Second,
+			// Default 90s so sync LLM generate (LLM_TIMEOUT_SECONDS≈60) is not cut by HTTP write timeout.
+			WriteTimeout:       time.Duration(envOrDefaultInt("SERVER_WRITE_TIMEOUT_SECONDS", 90)) * time.Second,
 			IdleTimeout:        time.Duration(envOrDefaultInt("SERVER_IDLE_TIMEOUT_SECONDS", 60)) * time.Second,
 			CORSAllowedOrigins: envOrDefaultSlice("CORS_ALLOWED_ORIGINS", nil),
 			MaxBodyBytes:       envOrDefaultInt64("MAX_BODY_BYTES", 1<<20),
@@ -162,11 +176,61 @@ func Load() *Config {
 			ReadBufferSize:  envOrDefaultInt("WS_READ_BUFFER_SIZE", 1024),
 			WriteBufferSize: envOrDefaultInt("WS_WRITE_BUFFER_SIZE", 1024),
 		},
+		LLM: LLMConfig{
+			Enabled:               envOrDefault("LLM_ENABLED", "true") == "true",
+			Provider:              envOrDefault("LLM_PROVIDER", "mock"),
+			BaseURL:               envOrDefault("LLM_BASE_URL", ""),
+			APIKey:                envOrDefault("LLM_API_KEY", ""),
+			Model:                 envOrDefault("LLM_MODEL", ""),
+			TimeoutSeconds:        envOrDefaultInt("LLM_TIMEOUT_SECONDS", 60),
+			MaxRetries:            envOrDefaultInt("LLM_MAX_RETRIES", 2),
+			AllowMockInProduction: envOrDefault("LLM_ALLOW_MOCK_IN_PRODUCTION", "false") == "true",
+		},
 		Log: LogConfig{
 			Level:  envOrDefault("LOG_LEVEL", "info"),
 			Format: envOrDefault("LOG_FORMAT", "json"),
 		},
 	}
+}
+
+// ValidateLLMConfig validates LLM settings for the current environment.
+// Unknown providers and accidental mock-in-production are hard errors (no silent fallback).
+func ValidateLLMConfig(cfg LLMConfig, production bool) error {
+	if !cfg.Enabled {
+		return nil
+	}
+
+	name := strings.ToLower(strings.TrimSpace(cfg.Provider))
+	if name == "" {
+		return fmt.Errorf("LLM_PROVIDER is required when LLM_ENABLED=true")
+	}
+
+	switch name {
+	case "mock":
+		// local/dev deterministic provider
+	case "gemma":
+		if strings.TrimSpace(cfg.BaseURL) == "" {
+			return fmt.Errorf("LLM_BASE_URL is required when LLM_PROVIDER=gemma")
+		}
+		if production && strings.TrimSpace(cfg.APIKey) == "" {
+			return fmt.Errorf("LLM_API_KEY is required in production when LLM_PROVIDER=gemma")
+		}
+	default:
+		return fmt.Errorf("unknown LLM provider %q (supported in this build: mock, gemma)", cfg.Provider)
+	}
+
+	if cfg.TimeoutSeconds <= 0 {
+		return fmt.Errorf("LLM_TIMEOUT_SECONDS must be positive")
+	}
+	if cfg.MaxRetries < 0 {
+		return fmt.Errorf("LLM_MAX_RETRIES must be >= 0")
+	}
+
+	if production && name == "mock" && !cfg.AllowMockInProduction {
+		return fmt.Errorf("LLM_PROVIDER=mock is not allowed in production; set LLM_ALLOW_MOCK_IN_PRODUCTION=true to override")
+	}
+
+	return nil
 }
 
 func envOrDefault(key, defaultVal string) string {

@@ -9,6 +9,8 @@ import (
 
 func TestLoad_Defaults(t *testing.T) {
 	t.Setenv("APP_ENV", "development")
+	t.Setenv("LLM_ENABLED", "true")
+	t.Setenv("LLM_PROVIDER", "mock")
 
 	cfg := Load()
 
@@ -21,8 +23,83 @@ func TestLoad_Defaults(t *testing.T) {
 	assert.Equal(t, "masterfabric", cfg.Database.User)
 	assert.Equal(t, "localhost", cfg.Redis.Host)
 	assert.Equal(t, 6379, cfg.Redis.Port)
+	assert.True(t, cfg.LLM.Enabled)
+	assert.Equal(t, "mock", cfg.LLM.Provider)
+	assert.Equal(t, 60, cfg.LLM.TimeoutSeconds)
+	assert.Equal(t, 2, cfg.LLM.MaxRetries)
+	assert.False(t, cfg.LLM.AllowMockInProduction)
 	assert.Equal(t, "info", cfg.Log.Level)
 	assert.Equal(t, "json", cfg.Log.Format)
+}
+
+func TestValidateLLMConfig(t *testing.T) {
+	assert.NoError(t, ValidateLLMConfig(LLMConfig{Enabled: false}, true))
+
+	assert.NoError(t, ValidateLLMConfig(LLMConfig{
+		Enabled:        true,
+		Provider:       "mock",
+		TimeoutSeconds: 60,
+		MaxRetries:     0,
+	}, false))
+
+	err := ValidateLLMConfig(LLMConfig{Enabled: true, Provider: "", TimeoutSeconds: 60}, false)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "LLM_PROVIDER")
+
+	err = ValidateLLMConfig(LLMConfig{Enabled: true, Provider: "openai", TimeoutSeconds: 60}, false)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "unknown LLM provider")
+
+	err = ValidateLLMConfig(LLMConfig{Enabled: true, Provider: "gemma", TimeoutSeconds: 60}, false)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "LLM_BASE_URL")
+
+	assert.NoError(t, ValidateLLMConfig(LLMConfig{
+		Enabled:        true,
+		Provider:       "gemma",
+		BaseURL:        "http://localhost:11434/v1",
+		TimeoutSeconds: 60,
+	}, false))
+
+	err = ValidateLLMConfig(LLMConfig{
+		Enabled:        true,
+		Provider:       "gemma",
+		BaseURL:        "http://localhost:11434/v1",
+		TimeoutSeconds: 60,
+	}, true)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "LLM_API_KEY")
+
+	assert.NoError(t, ValidateLLMConfig(LLMConfig{
+		Enabled:        true,
+		Provider:       "gemma",
+		BaseURL:        "https://llm.example/v1",
+		APIKey:         "secret",
+		TimeoutSeconds: 60,
+	}, true))
+
+	err = ValidateLLMConfig(LLMConfig{Enabled: true, Provider: "mock", TimeoutSeconds: 0}, false)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "LLM_TIMEOUT_SECONDS")
+
+	err = ValidateLLMConfig(LLMConfig{Enabled: true, Provider: "mock", TimeoutSeconds: 60, MaxRetries: -1}, false)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "LLM_MAX_RETRIES")
+
+	err = ValidateLLMConfig(LLMConfig{
+		Enabled:        true,
+		Provider:       "mock",
+		TimeoutSeconds: 60,
+	}, true)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "not allowed in production")
+
+	assert.NoError(t, ValidateLLMConfig(LLMConfig{
+		Enabled:               true,
+		Provider:              "mock",
+		TimeoutSeconds:        60,
+		AllowMockInProduction: true,
+	}, true))
 }
 
 func TestConfig_IsProduction(t *testing.T) {

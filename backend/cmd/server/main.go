@@ -17,6 +17,7 @@ import (
 	infraAuth "github.com/masterfabric-go/masterfabric/internal/infrastructure/auth"
 	apimgmtHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/apimanagement"
 	auditHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/audit"
+	generationHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/generation"
 	iamHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/iam"
 	projectprofileHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/projectprofile"
 	questionnaireHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/questionnaire"
@@ -24,8 +25,10 @@ import (
 	tenantHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/tenant"
 	"github.com/masterfabric-go/masterfabric/internal/infrastructure/http/router"
 	infraKafka "github.com/masterfabric-go/masterfabric/internal/infrastructure/kafka"
+	infraLLM "github.com/masterfabric-go/masterfabric/internal/infrastructure/llm"
 	pgApimgmt "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/apimanagement"
 	pgAudit "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/audit"
+	pgDocument "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/document"
 	pgIam "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/iam"
 	pgProjectProfile "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/projectprofile"
 	pgQuestionnaire "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/questionnaire"
@@ -34,6 +37,7 @@ import (
 
 	// Application use cases
 	apimgmtUC "github.com/masterfabric-go/masterfabric/internal/application/apimanagement/usecase"
+	generationUC "github.com/masterfabric-go/masterfabric/internal/application/generation/usecase"
 	iamUC "github.com/masterfabric-go/masterfabric/internal/application/iam/usecase"
 	projectprofileUC "github.com/masterfabric-go/masterfabric/internal/application/projectprofile/usecase"
 	questionnaireUC "github.com/masterfabric-go/masterfabric/internal/application/questionnaire/usecase"
@@ -115,7 +119,10 @@ func run() error {
 	defer func() { _ = eventBus.Close() }()
 
 	// Build dependencies
-	deps := buildDependencies(log, cfg, db, redisClient, eventBus)
+	deps, err := buildDependencies(log, cfg, db, redisClient, eventBus)
+	if err != nil {
+		return err
+	}
 
 	// Production must never boot with Auth/RBAC disabled (maybeRequirePermission no-op).
 	if err := router.ValidateSecureAuthWiring(deps, cfg.IsProduction()); err != nil {
@@ -208,7 +215,7 @@ func buildDependencies(
 	db *pgxpool.Pool,
 	redisClient *redis.Client,
 	eventBus events.EventBus,
-) router.Dependencies {
+) (router.Dependencies, error) {
 	deps := router.Dependencies{
 		Logger:             log,
 		DB:                 db,
@@ -217,9 +224,26 @@ func buildDependencies(
 		MaxBodyBytes:       cfg.Server.MaxBodyBytes,
 	}
 
+	// LLM provider is independent of the database (mock / gemma via LLMProvider).
+	if err := config.ValidateLLMConfig(cfg.LLM, cfg.IsProduction()); err != nil {
+		return deps, fmt.Errorf("llm config: %w", err)
+	}
+	llmProvider, err := infraLLM.NewProvider(cfg.LLM)
+	if err != nil {
+		return deps, fmt.Errorf("llm provider: %w", err)
+	}
+	deps.LLMProvider = llmProvider
+	providerHealthUC := generationUC.NewProviderHealthUseCase(llmProvider, cfg.LLM.Enabled)
+	// Document use-cases are wired after DB repos are available; health works without DB.
+	deps.GenerationHandler = generationHandler.NewHandler(providerHealthUC, nil, nil, nil, nil)
+	log.Info("llm provider configured",
+		"provider", llmProvider.Name(),
+		"enabled", cfg.LLM.Enabled,
+	)
+
 	if db == nil {
 		log.Warn("database not available, API endpoints will not work")
-		return deps
+		return deps, nil
 	}
 
 	// --- Repositories ---
@@ -237,6 +261,7 @@ func buildDependencies(
 	questionnaireSetRepo := pgQuestionnaire.NewSetRepository(db)
 	questionRepo := pgQuestionnaire.NewQuestionRepository(db)
 	answerRepo := pgQuestionnaire.NewAnswerRepository(db)
+	documentRepo := pgDocument.NewDocumentRepository(db)
 
 	// --- Services ---
 	jwtService := infraAuth.NewJWTService(cfg.JWT)
@@ -278,6 +303,19 @@ func buildDependencies(
 	upsertAnswerUC := questionnaireUC.NewUpsertAnswerUseCase(answerRepo, questionRepo, workspaceRepo)
 	bulkUpsertAnswersUC := questionnaireUC.NewBulkUpsertAnswersUseCase(answerRepo, workspaceRepo)
 	missingInformationUC := questionnaireUC.NewMissingInformationUseCase(questionnaireSetRepo, questionRepo, answerRepo, workspaceRepo)
+
+	// Phase 3 S4: document generation (context + prompt + LLMProvider + persist)
+	contextBuilder := generationUC.NewWorkspaceContextBuilder(
+		workspaceRepo, profileRepo, questionnaireSetRepo, questionRepo, answerRepo,
+	)
+	promptBuilder := generationUC.NewPromptBuilder()
+	generationGate := generationUC.NewGenerationGate()
+	generateDocumentUC := generationUC.NewGenerateDocumentUseCase(
+		contextBuilder, promptBuilder, llmProvider, documentRepo, generationGate, cfg.LLM.Enabled, log,
+	)
+	regenerateDocumentUC := generationUC.NewRegenerateDocumentUseCase(generateDocumentUC, documentRepo, workspaceRepo)
+	listDocumentsUC := generationUC.NewListDocumentsUseCase(documentRepo, workspaceRepo)
+	getDocumentUC := generationUC.NewGetDocumentUseCase(documentRepo, workspaceRepo)
 
 	// --- Register sample Kafka consumers ---
 	// Log all IAM events
@@ -322,6 +360,13 @@ func buildDependencies(
 		upsertAnswerUC,
 		bulkUpsertAnswersUC,
 		missingInformationUC,
+	)
+	deps.GenerationHandler = generationHandler.NewHandler(
+		providerHealthUC,
+		generateDocumentUC,
+		regenerateDocumentUC,
+		listDocumentsUC,
+		getDocumentUC,
 	)
 
 	// --- WebSocket real-time hub ---
@@ -385,5 +430,5 @@ func buildDependencies(
 		piiMasker,       // PII masking interceptor
 	)
 
-	return deps
+	return deps, nil
 }

@@ -74,7 +74,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     });
   } catch {
     throw new ApiError(
-      "Unable to reach the API. Confirm NEXT_PUBLIC_API_BASE_URL and that the backend is running.",
+      "API'ye ulaşılamadı. NEXT_PUBLIC_API_BASE_URL değerini ve backend'in çalıştığını kontrol edin.",
       0,
     );
   }
@@ -83,9 +83,10 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
 
   if (!response.ok) {
     const errorBody = (payload ?? {}) as ApiErrorBody;
+    // Prefer detailed message (e.g. LLM timeout) over generic HTTP status text in `error`.
     const message =
-      errorBody.error ||
       errorBody.message ||
+      errorBody.error ||
       `Request failed with status ${response.status}`;
 
     if (response.status === 401 && auth) {

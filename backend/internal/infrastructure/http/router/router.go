@@ -14,6 +14,7 @@ import (
 	// Handlers
 	apimgmtHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/apimanagement"
 	auditHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/audit"
+	generationHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/generation"
 	"github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/health"
 	iamHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/iam"
 	projectprofileHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/projectprofile"
@@ -23,6 +24,7 @@ import (
 
 	// Services & middleware
 	iamService "github.com/masterfabric-go/masterfabric/internal/domain/iam/service"
+	domainllm "github.com/masterfabric-go/masterfabric/internal/domain/llm"
 	"github.com/masterfabric-go/masterfabric/internal/gateway"
 	"github.com/masterfabric-go/masterfabric/internal/shared/middleware"
 
@@ -49,6 +51,7 @@ type Dependencies struct {
 	// Services
 	AuthService iamService.AuthService
 	RBACService iamService.RBACService
+	LLMProvider domainllm.LLMProvider
 
 	// Handlers
 	IAMHandler            *iamHandler.Handler
@@ -58,6 +61,7 @@ type Dependencies struct {
 	RealtimeHandler       *realtimeHandler.Handler
 	ProjectProfileHandler *projectprofileHandler.Handler
 	QuestionnaireHandler  *questionnaireHandler.Handler
+	GenerationHandler     *generationHandler.Handler
 
 	// Gateway
 	GatewayPipeline *gateway.Pipeline
@@ -203,6 +207,11 @@ func New(deps Dependencies) *chi.Mux {
 				})
 			}
 
+			// Phase 3 S1: LLM provider health (provider-agnostic)
+			if deps.GenerationHandler != nil {
+				r.With(maybeRequirePermission(deps.RBACService, "generation:read")).Get("/llm/health", deps.GenerationHandler.ProviderHealth)
+			}
+
 			// AI Development Configuration Studio: workspace-scoped profile & questionnaire routes.
 			// Resolved via X-Organization-ID (TenantResolver) rather than the /organizations/{orgId} path.
 			r.Route("/workspaces/{workspaceId}", func(r chi.Router) {
@@ -222,6 +231,16 @@ func New(deps Dependencies) *chi.Mux {
 						r.With(maybeRequirePermission(deps.RBACService, "answer:read")).Get("/", deps.QuestionnaireHandler.ListAnswers)
 						r.With(maybeRequirePermission(deps.RBACService, "answer:write")).Post("/bulk", deps.QuestionnaireHandler.BulkUpsertAnswers)
 						r.With(maybeRequirePermission(deps.RBACService, "answer:write")).Put("/{questionId}", deps.QuestionnaireHandler.UpsertAnswer)
+					})
+				}
+
+				// Phase 3 S4: generated documents (context built server-side; never accept FE profile/answers)
+				if deps.GenerationHandler != nil {
+					r.Route("/documents", func(r chi.Router) {
+						r.With(maybeRequirePermission(deps.RBACService, "document:read")).Get("/", deps.GenerationHandler.ListDocuments)
+						r.With(maybeRequirePermission(deps.RBACService, "generation:run")).Post("/generate", deps.GenerationHandler.GenerateDocument)
+						r.With(maybeRequirePermission(deps.RBACService, "document:read")).Get("/{documentId}", deps.GenerationHandler.GetDocument)
+						r.With(maybeRequirePermission(deps.RBACService, "generation:run")).Post("/{documentId}/regenerate", deps.GenerationHandler.RegenerateDocument)
 					})
 				}
 			})

@@ -8,16 +8,18 @@ import (
 
 // Sentinel domain errors.
 var (
-	ErrNotFound       = errors.New("resource not found")
-	ErrAlreadyExists  = errors.New("resource already exists")
-	ErrUnauthorized   = errors.New("unauthorized")
-	ErrForbidden      = errors.New("forbidden")
-	ErrValidation     = errors.New("validation error")
-	ErrInternal       = errors.New("internal error")
-	ErrBadRequest     = errors.New("bad request")
-	ErrConflict       = errors.New("conflict")
-	ErrRateLimited    = errors.New("rate limited")
-	ErrNotImplemented = errors.New("not implemented")
+	ErrNotFound           = errors.New("resource not found")
+	ErrAlreadyExists      = errors.New("resource already exists")
+	ErrUnauthorized       = errors.New("unauthorized")
+	ErrForbidden          = errors.New("forbidden")
+	ErrValidation         = errors.New("validation error")
+	ErrInternal           = errors.New("internal error")
+	ErrBadRequest         = errors.New("bad request")
+	ErrConflict           = errors.New("conflict")
+	ErrRateLimited        = errors.New("rate limited")
+	ErrNotImplemented     = errors.New("not implemented")
+	ErrBadGateway         = errors.New("bad gateway")
+	ErrServiceUnavailable = errors.New("service unavailable")
 )
 
 // DomainError is a structured error with an underlying cause and a message.
@@ -70,6 +72,10 @@ func HTTPStatusCode(err error) int {
 		return http.StatusTooManyRequests
 	case errors.Is(err, ErrNotImplemented):
 		return http.StatusNotImplemented
+	case errors.Is(err, ErrBadGateway):
+		return http.StatusBadGateway
+	case errors.Is(err, ErrServiceUnavailable):
+		return http.StatusServiceUnavailable
 	default:
 		return http.StatusInternalServerError
 	}

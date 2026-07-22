@@ -9,7 +9,7 @@ export const tr = {
     "Aracı geliştirme araçları için platformdan bağımsız Markdown üretimi.",
 
   nav: {
-    workspaces: "Çalışma Alanları",
+    workspaces: "Projeler",
     plan: "Plan",
     questionnaires: "Anketler",
     generate: "Üret",
@@ -45,53 +45,59 @@ export const tr = {
   },
 
   org: {
-    title: "Organizasyonlar",
+    title: "Projeler",
     description:
-      "Şirket veya ekip sınırını seçin. Proje profilleri, anketler ve üretilen belgeler seçilen organizasyon içinde kalır.",
-    new: "Yeni organizasyon",
-    createTitle: "Organizasyon oluştur",
+      "Yapılandırma paketlerini, anketleri ve üretilen belgeleri proje bazında yönetin.",
+    new: "Yeni proje",
+    createTitle: "Proje oluştur",
     createDescription:
-      "Organizasyonlar çalışma alanlarını, üyeleri, rolleri ve üretilen yapılandırma paketlerini yönetir.",
-    name: "Ad",
+      "Proje adı, mobil platformlar ve teknolojileri seçerek ön proje yapısını kaydedin.",
+    name: "Proje adı",
     slug: "Kısa ad (slug)",
+    descriptionLabel: "Açıklama",
+    descriptionPlaceholder: "Bu proje ne hakkında? (opsiyonel)",
+    mobilePlatforms: "Mobil platformlar",
+    mobilePlatformsHint: "iOS ve Android’i birlikte seçebilirsiniz.",
+    technologies: "Teknolojiler",
+    technologiesHint: "Kullanacağınız teknolojileri seçin. Bunlar ön proje profiline yazılır.",
     cancel: "İptal",
-    creating: "Oluşturuluyor…",
-    create: "Oluştur",
-    created: "Organizasyon oluşturuldu",
-    createFailed: "Organizasyon oluşturulamadı",
-    loadFailed: "Organizasyonlar yüklenemedi",
+    creating: "Kaydediliyor…",
+    create: "Ön projeyi kaydet",
+    created: "Ön proje kaydedildi",
+    createFailed: "Proje kaydedilemedi",
+    loadFailed: "Projeler yüklenemedi",
     retry: "Yeniden dene",
-    emptyTitle: "Henüz organizasyon yok",
+    emptyTitle: "Henüz proje yok",
     emptyDescription:
-      "Geliştirme çalışma alanlarını yapılandırmaya başlamak için ilk organizasyonunuzu oluşturun.",
+      "Geliştirme yapılandırmasına başlamak için ilk projenizi oluşturun.",
     createdAt: "Oluşturulma",
-    switch: "Organizasyon değiştir",
-    organization: "Organizasyon",
+    switch: "Projelere dön",
+    organization: "Hesap",
   },
 
   workspace: {
-    title: "Çalışma Alanları",
+    title: "Projeler",
     description:
-      "Her çalışma alanı bir proje profili, anket yanıtları, araçlar, üretilen belgeler ve hazırlık skorlarını barındırır.",
-    loadFailed: "Çalışma alanları yüklenemedi",
+      "Her proje bir profil, anket yanıtları, araçlar, üretilen belgeler ve hazırlık skorlarını barındırır.",
+    loadFailed: "Projeler yüklenemedi",
     loadFailedHint:
-      "Backend organizasyon bağlamı gerektirebilir. X-Organization-ID ve RBAC izinlerini doğrulayın.",
-    emptyTitle: "Henüz çalışma alanı yok",
+      "Oturum veya hesap bağlamı eksik olabilir. Yeniden giriş yapıp tekrar deneyin.",
+    emptyTitle: "Henüz proje yok",
     emptyDescription:
-      "Proje profili ve anket akışına başlamak için bir çalışma alanı oluşturun.",
-    newTitle: "Yeni çalışma alanı",
+      "Proje profili ve anket akışına başlamak için bir proje oluşturun.",
+    newTitle: "Yeni proje",
     newDescription:
-      "Yeni veya mevcut bir yazılım projesi için yapılandırma çalışma alanı başlatın.",
-    name: "Ad",
+      "Yeni veya mevcut bir yazılım projesi için yapılandırma akışını başlatın.",
+    name: "Proje adı",
     slug: "Kısa ad (slug)",
     descriptionLabel: "Açıklama",
     descriptionPlaceholder: "Bu proje ne hakkında?",
     creating: "Oluşturuluyor…",
-    create: "Çalışma alanı oluştur",
-    created: "Çalışma alanı oluşturuldu",
-    createFailed: "Çalışma alanı oluşturulamadı",
+    create: "Proje oluştur",
+    created: "Proje oluşturuldu",
+    createFailed: "Proje oluşturulamadı",
     noDescription: "Henüz açıklama yok",
-    overviewTitle: "Çalışma alanı özeti",
+    overviewTitle: "Proje özeti",
   },
 
   placeholder: {
@@ -109,7 +115,7 @@ export const tr = {
       "Gemma üretim koşularını, hazırlık skorlarını, belge kalitesini ve denetim etkinliğini izleyin.",
     settingsTitle: "Ayarlar",
     settingsDescription:
-      "Organizasyon üyelerini, rolleri, model yapılandırmasını, skor eşiklerini ve entegrasyonları yönetin.",
+      "Proje üyelerini, rolleri, model yapılandırmasını, skor eşiklerini ve entegrasyonları yönetin.",
     arrivesIn: (title: string, phase: string) =>
       `${title} ${phase} aşamasında gelecek`,
     wired:
@@ -118,8 +124,8 @@ export const tr = {
 
   common: {
     dashboard: "Kontrol paneli",
-    organizations: "Organizasyonlar",
-    workspaces: "Çalışma Alanları",
+    organizations: "Projeler",
+    workspaces: "Projeler",
     overview: "Özet",
     retry: "Yeniden dene",
     save: "Kaydet",
@@ -230,6 +236,49 @@ export const tr = {
       tr: "Türkçe",
       en: "İngilizce",
     },
+  },
+
+  generate: {
+    title: "Üret",
+    description:
+      "Profil ve anket yanıtlarından platformdan bağımsız Markdown belge üretin. Bağlam sunucuda birleştirilir.",
+    createTitle: "Yeni belge üret",
+    createHint:
+      "İsteğe bağlı başlık ve dil seçebilirsiniz. Profil veya anket verisi buradan gönderilmez.",
+    titleField: "Belge başlığı",
+    titlePlaceholder: "Örn. AI Geliştirme Yapılandırması",
+    languageField: "Belge dili",
+    languageWorkspace: "Proje tercihi",
+    create: "Belge üret",
+    creating: "Üretiliyor…",
+    created: "Belge üretildi",
+    createFailed: "Belge üretilemedi",
+    inProgress: "Bu proje için üretim zaten devam ediyor",
+    listTitle: "Üretilen belgeler",
+    emptyTitle: "Henüz belge yok",
+    emptyDescription:
+      "İlk Markdown belgenizi üretmek için yukarıdaki düğmeyi kullanın. Sonuç burada listelenir.",
+    loadFailed: "Belgeler yüklenemedi",
+    loadDocumentFailed: "Belge yüklenemedi",
+    viewerTitle: "Belge",
+    backToList: "Listeye dön",
+    regenerate: "Yeniden üret",
+    regenerating: "Yeniden üretiliyor…",
+    regenerated: "Yeni belge üretildi",
+    regenerateFailed: "Yeniden üretim başarısız",
+    emptyBody: "Bu belgede içerik yok.",
+    contextFingerprint: "Bağlam özeti (fingerprint)",
+    failedBodyHint: "Üretim başarısız olduğu için Markdown içerik oluşmadı. Yeniden üretmeyi deneyin.",
+    healthChecking: "Sağlayıcı kontrol ediliyor…",
+    healthOk: (provider: string) => `Sağlayıcı hazır · ${provider}`,
+    healthFail: "Sağlayıcı sağlığı alınamadı",
+    healthFailDetail: (provider: string, message: string) =>
+      message
+        ? `Sağlayıcı sorunlu · ${provider}: ${message}`
+        : `Sağlayıcı sorunlu · ${provider}`,
+    statusSucceeded: "Başarılı",
+    statusFailed: "Başarısız",
+    statusPending: "Beklemede",
   },
 
   questionnaire: {

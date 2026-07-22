@@ -82,7 +82,7 @@ export function TopBar({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuLabel>{tr.org.organization}</DropdownMenuLabel>
+          <DropdownMenuLabel>{tr.org.title}</DropdownMenuLabel>
           <DropdownMenuItem asChild>
             <Link href="/organizations">{tr.org.switch}</Link>
           </DropdownMenuItem>
