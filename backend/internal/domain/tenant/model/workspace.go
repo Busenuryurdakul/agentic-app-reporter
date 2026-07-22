@@ -15,18 +15,23 @@ const (
 	WorkspaceStatusArchived  WorkspaceStatus = "archived"
 )
 
+// DefaultPreferredDocumentLanguage is used when a workspace does not specify
+// a preferred document language explicitly.
+const DefaultPreferredDocumentLanguage = "tr"
+
 // Workspace represents a workspace within an organization.
 // Workspaces provide an additional level of tenant isolation and organization.
 // Hierarchy: Organization -> Workspace -> App
 type Workspace struct {
-	ID             uuid.UUID       `json:"id"`
-	OrganizationID uuid.UUID       `json:"organization_id"`
-	Name           string          `json:"name"`
-	Slug           string          `json:"slug"`
-	Description    string          `json:"description,omitempty"`
-	Status         WorkspaceStatus `json:"status"`
-	CreatedAt      time.Time       `json:"created_at"`
-	UpdatedAt      time.Time       `json:"updated_at"`
+	ID                        uuid.UUID       `json:"id"`
+	OrganizationID            uuid.UUID       `json:"organization_id"`
+	Name                      string          `json:"name"`
+	Slug                      string          `json:"slug"`
+	Description               string          `json:"description,omitempty"`
+	Status                    WorkspaceStatus `json:"status"`
+	PreferredDocumentLanguage string          `json:"preferred_document_language"`
+	CreatedAt                 time.Time       `json:"created_at"`
+	UpdatedAt                 time.Time       `json:"updated_at"`
 }
 
 // IsActive checks if the workspace is active.

@@ -28,14 +28,17 @@ func NewWorkspaceRepository(db *pgxpool.Pool) *WorkspaceRepository {
 // Create creates a new workspace.
 func (r *WorkspaceRepository) Create(ctx context.Context, workspace *model.Workspace) error {
 	query := `
-		INSERT INTO workspaces (id, organization_id, name, slug, description, status, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		INSERT INTO workspaces (id, organization_id, name, slug, description, status, preferred_document_language, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 	`
 	now := time.Now()
 	workspace.CreatedAt = now
 	workspace.UpdatedAt = now
 	if workspace.Status == "" {
 		workspace.Status = model.WorkspaceStatusActive
+	}
+	if workspace.PreferredDocumentLanguage == "" {
+		workspace.PreferredDocumentLanguage = model.DefaultPreferredDocumentLanguage
 	}
 
 	_, err := r.db.Exec(ctx, query,
@@ -45,6 +48,7 @@ func (r *WorkspaceRepository) Create(ctx context.Context, workspace *model.Works
 		workspace.Slug,
 		workspace.Description,
 		workspace.Status,
+		workspace.PreferredDocumentLanguage,
 		workspace.CreatedAt,
 		workspace.UpdatedAt,
 	)
@@ -54,7 +58,7 @@ func (r *WorkspaceRepository) Create(ctx context.Context, workspace *model.Works
 // GetByID retrieves a workspace by ID.
 func (r *WorkspaceRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Workspace, error) {
 	query := `
-		SELECT id, organization_id, name, slug, description, status, created_at, updated_at
+		SELECT id, organization_id, name, slug, description, status, preferred_document_language, created_at, updated_at
 		FROM workspaces
 		WHERE id = $1
 	`
@@ -66,6 +70,7 @@ func (r *WorkspaceRepository) GetByID(ctx context.Context, id uuid.UUID) (*model
 		&w.Slug,
 		&w.Description,
 		&w.Status,
+		&w.PreferredDocumentLanguage,
 		&w.CreatedAt,
 		&w.UpdatedAt,
 	)
@@ -81,7 +86,7 @@ func (r *WorkspaceRepository) GetByID(ctx context.Context, id uuid.UUID) (*model
 // GetBySlug retrieves a workspace by organization ID and slug.
 func (r *WorkspaceRepository) GetBySlug(ctx context.Context, orgID uuid.UUID, slug string) (*model.Workspace, error) {
 	query := `
-		SELECT id, organization_id, name, slug, description, status, created_at, updated_at
+		SELECT id, organization_id, name, slug, description, status, preferred_document_language, created_at, updated_at
 		FROM workspaces
 		WHERE organization_id = $1 AND slug = $2
 	`
@@ -93,6 +98,7 @@ func (r *WorkspaceRepository) GetBySlug(ctx context.Context, orgID uuid.UUID, sl
 		&w.Slug,
 		&w.Description,
 		&w.Status,
+		&w.PreferredDocumentLanguage,
 		&w.CreatedAt,
 		&w.UpdatedAt,
 	)
@@ -108,7 +114,7 @@ func (r *WorkspaceRepository) GetBySlug(ctx context.Context, orgID uuid.UUID, sl
 // ListByOrganization lists all workspaces for an organization.
 func (r *WorkspaceRepository) ListByOrganization(ctx context.Context, orgID uuid.UUID) ([]*model.Workspace, error) {
 	query := `
-		SELECT id, organization_id, name, slug, description, status, created_at, updated_at
+		SELECT id, organization_id, name, slug, description, status, preferred_document_language, created_at, updated_at
 		FROM workspaces
 		WHERE organization_id = $1
 		ORDER BY created_at DESC
@@ -129,6 +135,7 @@ func (r *WorkspaceRepository) ListByOrganization(ctx context.Context, orgID uuid
 			&w.Slug,
 			&w.Description,
 			&w.Status,
+			&w.PreferredDocumentLanguage,
 			&w.CreatedAt,
 			&w.UpdatedAt,
 		); err != nil {
@@ -144,7 +151,7 @@ func (r *WorkspaceRepository) ListByOrganization(ctx context.Context, orgID uuid
 func (r *WorkspaceRepository) Update(ctx context.Context, workspace *model.Workspace) error {
 	query := `
 		UPDATE workspaces
-		SET name = $2, slug = $3, description = $4, status = $5, updated_at = $6
+		SET name = $2, slug = $3, description = $4, status = $5, preferred_document_language = $6, updated_at = $7
 		WHERE id = $1
 	`
 	workspace.UpdatedAt = time.Now()
@@ -154,6 +161,7 @@ func (r *WorkspaceRepository) Update(ctx context.Context, workspace *model.Works
 		workspace.Slug,
 		workspace.Description,
 		workspace.Status,
+		workspace.PreferredDocumentLanguage,
 		workspace.UpdatedAt,
 	)
 	return err

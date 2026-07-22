@@ -452,7 +452,7 @@ The `scripts/` directory contains utility scripts for common development tasks:
 ./scripts/migrate.sh create NAME  # Create new migration file
 
 # Seed database with initial data
-go run scripts/seed.go            # Seed roles and permissions
+go run ./scripts                  # Seed roles, permissions, and default questionnaire
 ```
 
 ### Testing & Quality

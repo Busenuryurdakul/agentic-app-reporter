@@ -61,13 +61,19 @@ func (uc *CreateWorkspaceUseCase) Execute(ctx context.Context, req dto.CreateWor
 		return nil, domainErr.New(domainErr.ErrAlreadyExists, "workspace slug already taken in this organization", nil)
 	}
 
+	preferredDocLang := strings.TrimSpace(req.PreferredDocumentLanguage)
+	if preferredDocLang == "" {
+		preferredDocLang = model.DefaultPreferredDocumentLanguage
+	}
+
 	workspace := &model.Workspace{
-		ID:             uuid.New(),
-		OrganizationID: orgID,
-		Name:           strings.TrimSpace(req.Name),
-		Slug:           slug,
-		Description:    strings.TrimSpace(req.Description),
-		Status:         model.WorkspaceStatusActive,
+		ID:                        uuid.New(),
+		OrganizationID:            orgID,
+		Name:                      strings.TrimSpace(req.Name),
+		Slug:                      slug,
+		Description:               strings.TrimSpace(req.Description),
+		Status:                    model.WorkspaceStatusActive,
+		PreferredDocumentLanguage: preferredDocLang,
 	}
 
 	if err := uc.workspaceRepo.Create(ctx, workspace); err != nil {

@@ -18,19 +18,25 @@ import (
 	apimgmtHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/apimanagement"
 	auditHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/audit"
 	iamHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/iam"
+	projectprofileHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/projectprofile"
+	questionnaireHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/questionnaire"
 	realtimeHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/realtime"
 	tenantHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/tenant"
 	"github.com/masterfabric-go/masterfabric/internal/infrastructure/http/router"
 	infraKafka "github.com/masterfabric-go/masterfabric/internal/infrastructure/kafka"
-	infraWS "github.com/masterfabric-go/masterfabric/internal/infrastructure/websocket"
 	pgApimgmt "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/apimanagement"
 	pgAudit "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/audit"
 	pgIam "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/iam"
+	pgProjectProfile "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/projectprofile"
+	pgQuestionnaire "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/questionnaire"
 	pgTenant "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/tenant"
+	infraWS "github.com/masterfabric-go/masterfabric/internal/infrastructure/websocket"
 
 	// Application use cases
 	apimgmtUC "github.com/masterfabric-go/masterfabric/internal/application/apimanagement/usecase"
 	iamUC "github.com/masterfabric-go/masterfabric/internal/application/iam/usecase"
+	projectprofileUC "github.com/masterfabric-go/masterfabric/internal/application/projectprofile/usecase"
+	questionnaireUC "github.com/masterfabric-go/masterfabric/internal/application/questionnaire/usecase"
 	realtimeUC "github.com/masterfabric-go/masterfabric/internal/application/realtime/usecase"
 	tenantUC "github.com/masterfabric-go/masterfabric/internal/application/tenant/usecase"
 
@@ -110,6 +116,11 @@ func run() error {
 
 	// Build dependencies
 	deps := buildDependencies(log, cfg, db, redisClient, eventBus)
+
+	// Production must never boot with Auth/RBAC disabled (maybeRequirePermission no-op).
+	if err := router.ValidateSecureAuthWiring(deps, cfg.IsProduction()); err != nil {
+		return err
+	}
 
 	// Build router
 	r := router.New(deps)
@@ -222,6 +233,10 @@ func buildDependencies(
 	endpointRepo := pgApimgmt.NewEndpointRepo(db)
 	policyRepo := pgApimgmt.NewPolicyRepo(db)
 	auditRepo := pgAudit.NewAuditRepo(db)
+	profileRepo := pgProjectProfile.NewProfileRepository(db)
+	questionnaireSetRepo := pgQuestionnaire.NewSetRepository(db)
+	questionRepo := pgQuestionnaire.NewQuestionRepository(db)
+	answerRepo := pgQuestionnaire.NewAnswerRepository(db)
 
 	// --- Services ---
 	jwtService := infraAuth.NewJWTService(cfg.JWT)
@@ -249,6 +264,20 @@ func buildDependencies(
 	updatePolicyUC := apimgmtUC.NewUpdatePolicyUseCase(policyRepo)
 	retireEndpointUC := apimgmtUC.NewRetireEndpointUseCase(endpointRepo, eventBus)
 	activateEndpointUC := apimgmtUC.NewActivateEndpointUseCase(endpointRepo, eventBus)
+
+	// AI Development Configuration Studio: project profile use cases
+	getProfileUC := projectprofileUC.NewGetProfileUseCase(profileRepo, workspaceRepo)
+	upsertProfileUC := projectprofileUC.NewUpsertProfileUseCase(profileRepo, workspaceRepo)
+	completenessUC := projectprofileUC.NewCompletenessUseCase(profileRepo, workspaceRepo)
+
+	// AI Development Configuration Studio: questionnaire use cases
+	listSetsUC := questionnaireUC.NewListSetsUseCase(questionnaireSetRepo)
+	getSetUC := questionnaireUC.NewGetSetUseCase(questionnaireSetRepo, questionRepo)
+	listWorkspaceQuestionsUC := questionnaireUC.NewListWorkspaceQuestionsUseCase(questionnaireSetRepo, questionRepo, answerRepo, workspaceRepo)
+	listAnswersUC := questionnaireUC.NewListAnswersUseCase(answerRepo, workspaceRepo)
+	upsertAnswerUC := questionnaireUC.NewUpsertAnswerUseCase(answerRepo, questionRepo, workspaceRepo)
+	bulkUpsertAnswersUC := questionnaireUC.NewBulkUpsertAnswersUseCase(answerRepo, workspaceRepo)
+	missingInformationUC := questionnaireUC.NewMissingInformationUseCase(questionnaireSetRepo, questionRepo, answerRepo, workspaceRepo)
 
 	// --- Register sample Kafka consumers ---
 	// Log all IAM events
@@ -284,6 +313,16 @@ func buildDependencies(
 	)
 	deps.APIMgmtHandler = apimgmtHandler.NewHandler(defineEndpointUC, updatePolicyUC, retireEndpointUC, activateEndpointUC, endpointRepo, policyRepo)
 	deps.AuditHandler = auditHandler.NewHandler(auditRepo)
+	deps.ProjectProfileHandler = projectprofileHandler.NewHandler(getProfileUC, upsertProfileUC, completenessUC)
+	deps.QuestionnaireHandler = questionnaireHandler.NewHandler(
+		listSetsUC,
+		getSetUC,
+		listWorkspaceQuestionsUC,
+		listAnswersUC,
+		upsertAnswerUC,
+		bulkUpsertAnswersUC,
+		missingInformationUC,
+	)
 
 	// --- WebSocket real-time hub ---
 	wsHub := infraWS.NewHub(log, cfg.WebSocket.MaxConnections)
@@ -321,14 +360,14 @@ func buildDependencies(
 	// 3. Generic dynamic database handler (automatically performs CRUD operations)
 	backendRegistry := gateway.NewBackendRegistry()
 	dynamicResolver := gateway.NewDynamicHandlerResolver(backendRegistry, log, db)
-	
+
 	// Optional: Register service configurations for HTTP proxying
 	// Example:
 	// dynamicResolver.RegisterServiceConfig("product-service", gateway.ServiceConfig{
 	//     BaseURL: "https://api.example.com/products",
 	//     Headers: map[string]string{"Authorization": "Bearer token"},
 	// })
-	
+
 	// Optional: Register specific handlers for services that need custom logic
 	// Example:
 	// productHandler := handlers.NewProductHandler(...)
@@ -343,7 +382,7 @@ func buildDependencies(
 		log,
 		dynamicResolver, // Dynamic handler resolver (supports registered handlers, HTTP proxy, and generic handling)
 		schemaValidator, // Schema validation interceptor
-		piiMasker,      // PII masking interceptor
+		piiMasker,       // PII masking interceptor
 	)
 
 	return deps

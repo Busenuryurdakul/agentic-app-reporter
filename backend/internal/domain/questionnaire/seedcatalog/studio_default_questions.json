@@ -1,0 +1,3157 @@
+[
+  {
+    "key": "project_name",
+    "category": "Genel proje bilgileri",
+    "title": "Proje adı nedir?",
+    "description": "Resmi veya çalışma adı. Doküman ve workspace kimliğinde kullanılır.",
+    "type": "short_text",
+    "required": true,
+    "order": 10,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "project_summary",
+    "category": "Genel proje bilgileri",
+    "title": "Projeyi kısaca açıklayın",
+    "description": "Problem, hedef kullanıcı ve temel değer önerisini 3-6 cümlede özetleyin.",
+    "type": "long_text",
+    "required": true,
+    "order": 20,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "product_type",
+    "category": "Genel proje bilgileri",
+    "title": "Ürün tipi nedir?",
+    "description": "Ürünün birincil teslim biçimi.",
+    "type": "single_select",
+    "required": true,
+    "order": 30,
+    "options": [
+      {
+        "value": "web_app",
+        "label": "Web uygulaması"
+      },
+      {
+        "value": "mobile_app",
+        "label": "Mobil uygulama"
+      },
+      {
+        "value": "api_service",
+        "label": "API / servis"
+      },
+      {
+        "value": "cli",
+        "label": "CLI"
+      },
+      {
+        "value": "library",
+        "label": "Kütüphane / SDK"
+      },
+      {
+        "value": "data_platform",
+        "label": "Veri platformu"
+      },
+      {
+        "value": "internal_tool",
+        "label": "İç araç"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "project_stage",
+    "category": "Genel proje bilgileri",
+    "title": "Proje hangi aşamada?",
+    "description": "Yaşam döngüsü durumu; önerilen mimari derinliğini etkiler.",
+    "type": "single_select",
+    "required": true,
+    "order": 40,
+    "options": [
+      {
+        "value": "idea",
+        "label": "Fikir"
+      },
+      {
+        "value": "mvp",
+        "label": "MVP"
+      },
+      {
+        "value": "growth",
+        "label": "Büyüme"
+      },
+      {
+        "value": "mature",
+        "label": "Olgun"
+      },
+      {
+        "value": "maintenance",
+        "label": "Bakım"
+      },
+      {
+        "value": "sunset",
+        "label": "Sonlandırma"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "primary_users",
+    "category": "Genel proje bilgileri",
+    "title": "Birincil kullanıcı kitlesi kim?",
+    "description": "Birden fazla seçilebilir.",
+    "type": "multi_select",
+    "required": true,
+    "order": 50,
+    "options": [
+      {
+        "value": "end_users",
+        "label": "Son kullanıcılar"
+      },
+      {
+        "value": "admins",
+        "label": "Yöneticiler"
+      },
+      {
+        "value": "developers",
+        "label": "Geliştiriciler"
+      },
+      {
+        "value": "internal_staff",
+        "label": "İç ekipler"
+      },
+      {
+        "value": "partners",
+        "label": "Partnerler"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "business_domain",
+    "category": "Genel proje bilgileri",
+    "title": "İş alanı / domain nedir?",
+    "description": "Örn. fintech, sağlık, e-ticaret, geliştirici araçları.",
+    "type": "short_text",
+    "required": false,
+    "order": 60,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "success_metrics",
+    "category": "Genel proje bilgileri",
+    "title": "Başarı metrikleri nelerdir?",
+    "description": "Ölçülebilir hedefler (aktivasyon, latency, conversion vb.).",
+    "type": "long_text",
+    "required": false,
+    "order": 70,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "constraints",
+    "category": "Genel proje bilgileri",
+    "title": "Bilinen kısıtlar nelerdir?",
+    "description": "Zaman, bütçe, ekip, uyumluluk veya teknik kısıtlar.",
+    "type": "long_text",
+    "required": false,
+    "order": 80,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "preferred_doc_language",
+    "category": "Genel proje bilgileri",
+    "title": "Dokümantasyon dili tercihi",
+    "description": "Üretilen doküman ve AI çıktılarının birincil dili.",
+    "type": "single_select",
+    "required": true,
+    "order": 90,
+    "options": [
+      {
+        "value": "en",
+        "label": "English"
+      },
+      {
+        "value": "tr",
+        "label": "Türkçe"
+      },
+      {
+        "value": "bilingual",
+        "label": "Çift dilli"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "has_multi_tenant",
+    "category": "Kullanıcılar ve roller",
+    "title": "Çok kiracılı (multi-tenant) yapı var mı?",
+    "description": "Veri ve yetkinin kiracı bazında ayrılıp ayrılmadığı.",
+    "type": "boolean",
+    "required": true,
+    "order": 110,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "tenant_model",
+    "category": "Kullanıcılar ve roller",
+    "title": "Kiracı modeli nasıl?",
+    "description": "Tenant sınırının tanımı.",
+    "type": "single_select",
+    "required": false,
+    "order": 120,
+    "options": [
+      {
+        "value": "org_based",
+        "label": "Organizasyon bazlı"
+      },
+      {
+        "value": "workspace_based",
+        "label": "Workspace bazlı"
+      },
+      {
+        "value": "project_based",
+        "label": "Proje bazlı"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "has_multi_tenant",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "user_roles",
+    "category": "Kullanıcılar ve roller",
+    "title": "Sistemdeki ana roller neler?",
+    "description": "Ürün içi rol seti.",
+    "type": "multi_select",
+    "required": true,
+    "order": 130,
+    "options": [
+      {
+        "value": "owner",
+        "label": "Owner"
+      },
+      {
+        "value": "admin",
+        "label": "Admin"
+      },
+      {
+        "value": "editor",
+        "label": "Editor"
+      },
+      {
+        "value": "viewer",
+        "label": "Viewer"
+      },
+      {
+        "value": "guest",
+        "label": "Guest"
+      },
+      {
+        "value": "custom",
+        "label": "Özel roller"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "custom_roles_detail",
+    "category": "Kullanıcılar ve roller",
+    "title": "Özel roller varsa açıklayın",
+    "description": "Rol adı ve temel yetkileri.",
+    "type": "long_text",
+    "required": false,
+    "order": 140,
+    "options": [],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "user_roles",
+        "op": "in",
+        "value": [
+          "custom"
+        ]
+      }
+    }
+  },
+  {
+    "key": "permission_model",
+    "category": "Kullanıcılar ve roller",
+    "title": "Yetki modeli nedir?",
+    "description": "Yetkilendirme yaklaşımı.",
+    "type": "single_select",
+    "required": true,
+    "order": 150,
+    "options": [
+      {
+        "value": "rbac",
+        "label": "RBAC"
+      },
+      {
+        "value": "abac",
+        "label": "ABAC"
+      },
+      {
+        "value": "acl",
+        "label": "ACL"
+      },
+      {
+        "value": "hybrid",
+        "label": "Hibrit"
+      },
+      {
+        "value": "none",
+        "label": "Yok / henüz yok"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "org_hierarchy",
+    "category": "Kullanıcılar ve roller",
+    "title": "Organizasyon hiyerarşisi var mı?",
+    "description": "Org → team → workspace gibi katmanlar.",
+    "type": "boolean",
+    "required": false,
+    "order": 160,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "invitation_flow",
+    "category": "Kullanıcılar ve roller",
+    "title": "Kullanıcı davet / onboarding akışı nasıl?",
+    "description": "Davet, onay, ilk giriş ve rol atama özeti.",
+    "type": "long_text",
+    "required": false,
+    "order": 170,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "has_frontend",
+    "category": "Frontend",
+    "title": "Frontend uygulaması var mı?",
+    "description": "Kullanıcı arayüzü teslimi olup olmadığı.",
+    "type": "boolean",
+    "required": true,
+    "order": 210,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "frontend_framework",
+    "category": "Frontend",
+    "title": "Frontend framework / runtime",
+    "description": "Birincil UI teknolojisi.",
+    "type": "single_select",
+    "required": true,
+    "order": 220,
+    "options": [
+      {
+        "value": "react",
+        "label": "React"
+      },
+      {
+        "value": "nextjs",
+        "label": "Next.js"
+      },
+      {
+        "value": "vue",
+        "label": "Vue"
+      },
+      {
+        "value": "nuxt",
+        "label": "Nuxt"
+      },
+      {
+        "value": "angular",
+        "label": "Angular"
+      },
+      {
+        "value": "svelte",
+        "label": "Svelte / SvelteKit"
+      },
+      {
+        "value": "solid",
+        "label": "Solid"
+      },
+      {
+        "value": "vanilla",
+        "label": "Vanilla"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "has_frontend",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "frontend_language",
+    "category": "Frontend",
+    "title": "Frontend dili",
+    "description": "UI kod tabanının birincil dili.",
+    "type": "single_select",
+    "required": false,
+    "order": 230,
+    "options": [
+      {
+        "value": "typescript",
+        "label": "TypeScript"
+      },
+      {
+        "value": "javascript",
+        "label": "JavaScript"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "has_frontend",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "styling_approach",
+    "category": "Frontend",
+    "title": "Stil yaklaşımı",
+    "description": "CSS / styling çözümleri.",
+    "type": "multi_select",
+    "required": false,
+    "order": 240,
+    "options": [
+      {
+        "value": "tailwind",
+        "label": "Tailwind"
+      },
+      {
+        "value": "css_modules",
+        "label": "CSS Modules"
+      },
+      {
+        "value": "styled_components",
+        "label": "CSS-in-JS"
+      },
+      {
+        "value": "sass",
+        "label": "Sass/SCSS"
+      },
+      {
+        "value": "vanilla_css",
+        "label": "Vanilla CSS"
+      },
+      {
+        "value": "ui_kit",
+        "label": "UI kit temelli"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "has_frontend",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "state_management",
+    "category": "Frontend",
+    "title": "State management",
+    "description": "İstemci durumu yönetimi.",
+    "type": "multi_select",
+    "required": false,
+    "order": 250,
+    "options": [
+      {
+        "value": "none",
+        "label": "Yok / framework default"
+      },
+      {
+        "value": "react_context",
+        "label": "Context"
+      },
+      {
+        "value": "redux",
+        "label": "Redux"
+      },
+      {
+        "value": "zustand",
+        "label": "Zustand"
+      },
+      {
+        "value": "jotai",
+        "label": "Jotai"
+      },
+      {
+        "value": "pinia",
+        "label": "Pinia"
+      },
+      {
+        "value": "vuex",
+        "label": "Vuex"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "has_frontend",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "routing_model",
+    "category": "Frontend",
+    "title": "Routing modeli",
+    "description": "Sayfa / route teslim modeli.",
+    "type": "single_select",
+    "required": false,
+    "order": 260,
+    "options": [
+      {
+        "value": "spa",
+        "label": "SPA"
+      },
+      {
+        "value": "ssr",
+        "label": "SSR"
+      },
+      {
+        "value": "ssg",
+        "label": "SSG"
+      },
+      {
+        "value": "hybrid",
+        "label": "Hybrid"
+      },
+      {
+        "value": "mpa",
+        "label": "MPA"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "has_frontend",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "ui_component_strategy",
+    "category": "Frontend",
+    "title": "UI bileşen stratejisi",
+    "description": "Tasarım sistemi ve bileşen kaynağı.",
+    "type": "single_select",
+    "required": false,
+    "order": 270,
+    "options": [
+      {
+        "value": "design_system",
+        "label": "İç design system"
+      },
+      {
+        "value": "third_party_kit",
+        "label": "Üçüncü parti kit"
+      },
+      {
+        "value": "custom",
+        "label": "Tamamen özel"
+      },
+      {
+        "value": "mixed",
+        "label": "Karışık"
+      }
+    ],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "has_frontend",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "accessibility_target",
+    "category": "Frontend",
+    "title": "Erişilebilirlik hedefi",
+    "description": "Hedef WCAG seviyesi.",
+    "type": "single_select",
+    "required": false,
+    "order": 280,
+    "options": [
+      {
+        "value": "none",
+        "label": "Tanımsız"
+      },
+      {
+        "value": "wcag_a",
+        "label": "WCAG A"
+      },
+      {
+        "value": "wcag_aa",
+        "label": "WCAG AA"
+      },
+      {
+        "value": "wcag_aaa",
+        "label": "WCAG AAA"
+      }
+    ],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "has_frontend",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "frontend_notes",
+    "category": "Frontend",
+    "title": "Frontend’e özel notlar",
+    "description": "Önemli kısıtlar, paketler veya kararlar.",
+    "type": "long_text",
+    "required": false,
+    "order": 290,
+    "options": [],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "has_frontend",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "has_backend",
+    "category": "Backend",
+    "title": "Backend servisi var mı?",
+    "description": "Sunucu tarafı uygulama / API katmanı.",
+    "type": "boolean",
+    "required": true,
+    "order": 310,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "backend_language",
+    "category": "Backend",
+    "title": "Backend dili",
+    "description": "Birincil sunucu dili.",
+    "type": "single_select",
+    "required": true,
+    "order": 320,
+    "options": [
+      {
+        "value": "go",
+        "label": "Go"
+      },
+      {
+        "value": "typescript",
+        "label": "TypeScript"
+      },
+      {
+        "value": "javascript",
+        "label": "JavaScript"
+      },
+      {
+        "value": "python",
+        "label": "Python"
+      },
+      {
+        "value": "java",
+        "label": "Java"
+      },
+      {
+        "value": "csharp",
+        "label": "C#"
+      },
+      {
+        "value": "rust",
+        "label": "Rust"
+      },
+      {
+        "value": "kotlin",
+        "label": "Kotlin"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "has_backend",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "backend_framework",
+    "category": "Backend",
+    "title": "Backend framework / runtime",
+    "description": "Örn. Chi, NestJS, FastAPI, Spring Boot, ASP.NET.",
+    "type": "short_text",
+    "required": false,
+    "order": 330,
+    "options": [],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "has_backend",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "architecture_style",
+    "category": "Backend",
+    "title": "Mimari stil",
+    "description": "Servis ayrışma düzeyi.",
+    "type": "single_select",
+    "required": true,
+    "order": 340,
+    "options": [
+      {
+        "value": "monolith",
+        "label": "Monolith"
+      },
+      {
+        "value": "modular_monolith",
+        "label": "Modular monolith"
+      },
+      {
+        "value": "microservices",
+        "label": "Microservices"
+      },
+      {
+        "value": "serverless",
+        "label": "Serverless"
+      },
+      {
+        "value": "hybrid",
+        "label": "Hibrit"
+      }
+    ],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "has_backend",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "async_processing",
+    "category": "Backend",
+    "title": "Asenkron işleme kullanılıyor mu?",
+    "description": "Kuyruk, event veya background worker kullanımı.",
+    "type": "boolean",
+    "required": false,
+    "order": 350,
+    "options": [],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "has_backend",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "message_broker",
+    "category": "Backend",
+    "title": "Mesaj / kuyruk sistemi",
+    "description": "Asenkron iletişim altyapısı.",
+    "type": "multi_select",
+    "required": false,
+    "order": 360,
+    "options": [
+      {
+        "value": "none",
+        "label": "Yok"
+      },
+      {
+        "value": "rabbitmq",
+        "label": "RabbitMQ"
+      },
+      {
+        "value": "kafka",
+        "label": "Kafka"
+      },
+      {
+        "value": "sqs",
+        "label": "SQS"
+      },
+      {
+        "value": "redis_streams",
+        "label": "Redis Streams"
+      },
+      {
+        "value": "nats",
+        "label": "NATS"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "async_processing",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "background_jobs",
+    "category": "Backend",
+    "title": "Background job yaklaşımı",
+    "description": "Örn. cron, worker pool, queue consumer.",
+    "type": "short_text",
+    "required": false,
+    "order": 370,
+    "options": [],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "has_backend",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "backend_notes",
+    "category": "Backend",
+    "title": "Backend’e özel notlar",
+    "description": "Katmanlar, domain sınırları, kritik bağımlılıklar.",
+    "type": "long_text",
+    "required": false,
+    "order": 380,
+    "options": [],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "has_backend",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "has_public_api",
+    "category": "API",
+    "title": "Dışarıya açık API var mı?",
+    "description": "Üçüncü taraflara veya partnerlere sunulan API.",
+    "type": "boolean",
+    "required": true,
+    "order": 410,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "api_styles",
+    "category": "API",
+    "title": "API stilleri",
+    "description": "Kullanılan API protokol / stilleri.",
+    "type": "multi_select",
+    "required": true,
+    "order": 420,
+    "options": [
+      {
+        "value": "rest",
+        "label": "REST"
+      },
+      {
+        "value": "graphql",
+        "label": "GraphQL"
+      },
+      {
+        "value": "grpc",
+        "label": "gRPC"
+      },
+      {
+        "value": "websocket",
+        "label": "WebSocket"
+      },
+      {
+        "value": "webhook",
+        "label": "Webhook"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "api_versioning",
+    "category": "API",
+    "title": "Versiyonlama stratejisi",
+    "description": "Public API kırıcı değişiklik yönetimi.",
+    "type": "single_select",
+    "required": false,
+    "order": 430,
+    "options": [
+      {
+        "value": "none",
+        "label": "Yok"
+      },
+      {
+        "value": "url_path",
+        "label": "URL path (/v1)"
+      },
+      {
+        "value": "header",
+        "label": "Header"
+      },
+      {
+        "value": "query_param",
+        "label": "Query param"
+      },
+      {
+        "value": "media_type",
+        "label": "Media type"
+      }
+    ],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "has_public_api",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "api_docs_format",
+    "category": "API",
+    "title": "API dokümantasyon formatı",
+    "description": "Kontrat ve doküman kaynağı.",
+    "type": "multi_select",
+    "required": false,
+    "order": 440,
+    "options": [
+      {
+        "value": "openapi",
+        "label": "OpenAPI"
+      },
+      {
+        "value": "graphql_sdl",
+        "label": "GraphQL SDL"
+      },
+      {
+        "value": "protobuf",
+        "label": "Protobuf"
+      },
+      {
+        "value": "postman",
+        "label": "Postman / collection"
+      },
+      {
+        "value": "none",
+        "label": "Yok"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "error_contract",
+    "category": "API",
+    "title": "Hata yanıt sözleşmesi nasıl?",
+    "description": "Standart error shape, kodlar ve localization.",
+    "type": "long_text",
+    "required": false,
+    "order": 450,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "pagination_strategy",
+    "category": "API",
+    "title": "Sayfalama stratejisi",
+    "description": "Liste endpoint’leri için tercih.",
+    "type": "single_select",
+    "required": false,
+    "order": 460,
+    "options": [
+      {
+        "value": "none",
+        "label": "Yok"
+      },
+      {
+        "value": "offset",
+        "label": "Offset/limit"
+      },
+      {
+        "value": "cursor",
+        "label": "Cursor"
+      },
+      {
+        "value": "keyset",
+        "label": "Keyset"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "rate_limiting",
+    "category": "API",
+    "title": "Rate limiting var mı?",
+    "description": "İstek sınırlama politikası.",
+    "type": "boolean",
+    "required": false,
+    "order": 470,
+    "options": [],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "has_public_api",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "idempotency",
+    "category": "API",
+    "title": "Idempotency destekleniyor mu?",
+    "description": "Özellikle yazma işlemleri için.",
+    "type": "boolean",
+    "required": false,
+    "order": 480,
+    "options": [],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "has_public_api",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "primary_database",
+    "category": "Veritabanı",
+    "title": "Birincil veritabanı",
+    "description": "Kaynak gerçeklik (source of truth) deposu.",
+    "type": "single_select",
+    "required": true,
+    "order": 510,
+    "options": [
+      {
+        "value": "postgresql",
+        "label": "PostgreSQL"
+      },
+      {
+        "value": "mysql",
+        "label": "MySQL"
+      },
+      {
+        "value": "mariadb",
+        "label": "MariaDB"
+      },
+      {
+        "value": "mongodb",
+        "label": "MongoDB"
+      },
+      {
+        "value": "dynamodb",
+        "label": "DynamoDB"
+      },
+      {
+        "value": "sqlite",
+        "label": "SQLite"
+      },
+      {
+        "value": "cosmosdb",
+        "label": "Cosmos DB"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "secondary_datastores",
+    "category": "Veritabanı",
+    "title": "Ek veri depoları",
+    "description": "Cache, search, analytics, object storage vb.",
+    "type": "multi_select",
+    "required": false,
+    "order": 520,
+    "options": [
+      {
+        "value": "none",
+        "label": "Yok"
+      },
+      {
+        "value": "redis",
+        "label": "Redis"
+      },
+      {
+        "value": "elasticsearch",
+        "label": "Elasticsearch"
+      },
+      {
+        "value": "opensearch",
+        "label": "OpenSearch"
+      },
+      {
+        "value": "s3_blob",
+        "label": "Object storage"
+      },
+      {
+        "value": "clickhouse",
+        "label": "ClickHouse"
+      },
+      {
+        "value": "bigquery",
+        "label": "BigQuery"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "orm_or_query_layer",
+    "category": "Veritabanı",
+    "title": "ORM / query katmanı",
+    "description": "Örn. GORM, Prisma, SQLAlchemy, EF Core, raw SQL.",
+    "type": "short_text",
+    "required": false,
+    "order": 530,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "migration_tooling",
+    "category": "Veritabanı",
+    "title": "Migration aracı",
+    "description": "Örn. goose, flyway, prisma migrate, alembic.",
+    "type": "short_text",
+    "required": false,
+    "order": 540,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "data_modeling_style",
+    "category": "Veritabanı",
+    "title": "Veri modelleme stili",
+    "description": "Birincil modelleme yaklaşımı.",
+    "type": "single_select",
+    "required": false,
+    "order": 550,
+    "options": [
+      {
+        "value": "relational",
+        "label": "İlişkisel"
+      },
+      {
+        "value": "document",
+        "label": "Doküman"
+      },
+      {
+        "value": "event_sourced",
+        "label": "Event-sourced"
+      },
+      {
+        "value": "hybrid",
+        "label": "Hibrit"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "multi_db_strategy",
+    "category": "Veritabanı",
+    "title": "Çoklu DB / sharding stratejisi",
+    "description": "Varsa read replica, shard, tenant DB ayrımı.",
+    "type": "long_text",
+    "required": false,
+    "order": 560,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "backup_strategy",
+    "category": "Veritabanı",
+    "title": "Yedekleme stratejisi",
+    "description": "Sıklık, saklama süresi, restore hedefi (RPO/RTO).",
+    "type": "long_text",
+    "required": false,
+    "order": 570,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "pii_storage",
+    "category": "Veritabanı",
+    "title": "PII / hassas veri saklanıyor mu?",
+    "description": "Kişisel veya düzenlemeye tabi veri varlığı.",
+    "type": "boolean",
+    "required": true,
+    "order": 580,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "auth_required",
+    "category": "Kimlik doğrulama ve yetkilendirme",
+    "title": "Kimlik doğrulama zorunlu mu?",
+    "description": "Korunan kaynaklar için auth gereksinimi.",
+    "type": "boolean",
+    "required": true,
+    "order": 610,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "auth_methods",
+    "category": "Kimlik doğrulama ve yetkilendirme",
+    "title": "Kimlik doğrulama yöntemleri",
+    "description": "Desteklenen giriş yöntemleri.",
+    "type": "multi_select",
+    "required": true,
+    "order": 620,
+    "options": [
+      {
+        "value": "password",
+        "label": "Şifre"
+      },
+      {
+        "value": "magic_link",
+        "label": "Magic link"
+      },
+      {
+        "value": "oauth2",
+        "label": "OAuth2"
+      },
+      {
+        "value": "oidc",
+        "label": "OIDC"
+      },
+      {
+        "value": "saml",
+        "label": "SAML"
+      },
+      {
+        "value": "api_key",
+        "label": "API key"
+      },
+      {
+        "value": "mfa",
+        "label": "MFA"
+      },
+      {
+        "value": "passkey",
+        "label": "Passkey / WebAuthn"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "auth_required",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "auth_provider",
+    "category": "Kimlik doğrulama ve yetkilendirme",
+    "title": "Auth sağlayıcı",
+    "description": "Kimlik sağlayıcı veya built-in auth.",
+    "type": "single_select",
+    "required": false,
+    "order": 630,
+    "options": [
+      {
+        "value": "built_in",
+        "label": "Built-in"
+      },
+      {
+        "value": "auth0",
+        "label": "Auth0"
+      },
+      {
+        "value": "clerk",
+        "label": "Clerk"
+      },
+      {
+        "value": "cognito",
+        "label": "AWS Cognito"
+      },
+      {
+        "value": "keycloak",
+        "label": "Keycloak"
+      },
+      {
+        "value": "firebase_auth",
+        "label": "Firebase Auth"
+      },
+      {
+        "value": "azure_ad",
+        "label": "Azure AD / Entra"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "auth_required",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "session_model",
+    "category": "Kimlik doğrulama ve yetkilendirme",
+    "title": "Oturum modeli",
+    "description": "Oturum / token taşıma modeli.",
+    "type": "single_select",
+    "required": false,
+    "order": 640,
+    "options": [
+      {
+        "value": "jwt",
+        "label": "JWT"
+      },
+      {
+        "value": "opaque_token",
+        "label": "Opaque token"
+      },
+      {
+        "value": "cookie_session",
+        "label": "Cookie session"
+      },
+      {
+        "value": "mixed",
+        "label": "Karışık"
+      }
+    ],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "auth_required",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "token_lifetime_policy",
+    "category": "Kimlik doğrulama ve yetkilendirme",
+    "title": "Token süre / yenileme politikası",
+    "description": "Access/refresh süreleri ve revoke davranışı.",
+    "type": "long_text",
+    "required": false,
+    "order": 650,
+    "options": [],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "auth_required",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "authorization_enforcement",
+    "category": "Kimlik doğrulama ve yetkilendirme",
+    "title": "Yetki nerede uygulanıyor?",
+    "description": "Authorization enforcement noktaları.",
+    "type": "multi_select",
+    "required": false,
+    "order": 660,
+    "options": [
+      {
+        "value": "api_gateway",
+        "label": "API gateway"
+      },
+      {
+        "value": "middleware",
+        "label": "Middleware"
+      },
+      {
+        "value": "service_layer",
+        "label": "Service layer"
+      },
+      {
+        "value": "db_rls",
+        "label": "DB RLS"
+      },
+      {
+        "value": "frontend_only",
+        "label": "Sadece frontend"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "auth_required",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "service_to_service_auth",
+    "category": "Kimlik doğrulama ve yetkilendirme",
+    "title": "Servisler arası auth nasıl?",
+    "description": "Internal service authentication.",
+    "type": "single_select",
+    "required": false,
+    "order": 670,
+    "options": [
+      {
+        "value": "none",
+        "label": "Yok"
+      },
+      {
+        "value": "mtls",
+        "label": "mTLS"
+      },
+      {
+        "value": "jwt",
+        "label": "JWT"
+      },
+      {
+        "value": "api_key",
+        "label": "API key"
+      },
+      {
+        "value": "signed_requests",
+        "label": "İmzalı istekler"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "threat_model_exists",
+    "category": "Güvenlik",
+    "title": "Tehdit modeli / güvenlik gereksinimleri tanımlı mı?",
+    "description": "Bilinen tehditler ve güvenlik hedefleri belgelenmiş mi.",
+    "type": "boolean",
+    "required": true,
+    "order": 710,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "secrets_management",
+    "category": "Güvenlik",
+    "title": "Secret yönetimi",
+    "description": "Secret saklama ve dağıtım yöntemi.",
+    "type": "single_select",
+    "required": true,
+    "order": 720,
+    "options": [
+      {
+        "value": "env_files",
+        "label": "Env files"
+      },
+      {
+        "value": "vault",
+        "label": "Vault"
+      },
+      {
+        "value": "cloud_secrets_manager",
+        "label": "Cloud secrets manager"
+      },
+      {
+        "value": "sealed_secrets",
+        "label": "Sealed secrets"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "encryption_at_rest",
+    "category": "Güvenlik",
+    "title": "At-rest şifreleme var mı?",
+    "description": "Depolamada şifreleme.",
+    "type": "boolean",
+    "required": false,
+    "order": 730,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "encryption_in_transit",
+    "category": "Güvenlik",
+    "title": "In-transit şifreleme (TLS) zorunlu mu?",
+    "description": "Ağ üzerinde şifreleme politikası.",
+    "type": "boolean",
+    "required": true,
+    "order": 740,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "security_controls",
+    "category": "Güvenlik",
+    "title": "Uygulanan güvenlik kontrolleri",
+    "description": "Aktif güvenlik önlemleri.",
+    "type": "multi_select",
+    "required": false,
+    "order": 750,
+    "options": [
+      {
+        "value": "input_validation",
+        "label": "Input validation"
+      },
+      {
+        "value": "csrf",
+        "label": "CSRF koruması"
+      },
+      {
+        "value": "cors",
+        "label": "CORS politikası"
+      },
+      {
+        "value": "csp",
+        "label": "CSP"
+      },
+      {
+        "value": "waf",
+        "label": "WAF"
+      },
+      {
+        "value": "dependency_scanning",
+        "label": "Dependency scanning"
+      },
+      {
+        "value": "sast",
+        "label": "SAST"
+      },
+      {
+        "value": "dast",
+        "label": "DAST"
+      },
+      {
+        "value": "secret_scanning",
+        "label": "Secret scanning"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "compliance_targets",
+    "category": "Güvenlik",
+    "title": "Uyumluluk hedefleri",
+    "description": "Hedeflenen düzenleyici çerçeveler.",
+    "type": "multi_select",
+    "required": false,
+    "order": 760,
+    "options": [
+      {
+        "value": "none",
+        "label": "Yok"
+      },
+      {
+        "value": "gdpr",
+        "label": "GDPR"
+      },
+      {
+        "value": "kvkk",
+        "label": "KVKK"
+      },
+      {
+        "value": "hipaa",
+        "label": "HIPAA"
+      },
+      {
+        "value": "soc2",
+        "label": "SOC 2"
+      },
+      {
+        "value": "iso27001",
+        "label": "ISO 27001"
+      },
+      {
+        "value": "pci_dss",
+        "label": "PCI DSS"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "audit_logging",
+    "category": "Güvenlik",
+    "title": "Denetim (audit) logları tutuluyor mu?",
+    "description": "Kritik eylemlerin izlenebilirliği.",
+    "type": "boolean",
+    "required": false,
+    "order": 770,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "incident_response",
+    "category": "Güvenlik",
+    "title": "Olay müdahale süreci var mı?",
+    "description": "Security incident response playbook.",
+    "type": "boolean",
+    "required": false,
+    "order": 780,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "test_types",
+    "category": "Test",
+    "title": "Uygulanan test türleri",
+    "description": "Aktif test piramidi bileşenleri.",
+    "type": "multi_select",
+    "required": true,
+    "order": 810,
+    "options": [
+      {
+        "value": "unit",
+        "label": "Unit"
+      },
+      {
+        "value": "integration",
+        "label": "Integration"
+      },
+      {
+        "value": "e2e",
+        "label": "E2E"
+      },
+      {
+        "value": "contract",
+        "label": "Contract"
+      },
+      {
+        "value": "performance",
+        "label": "Performance"
+      },
+      {
+        "value": "security",
+        "label": "Security"
+      },
+      {
+        "value": "manual_only",
+        "label": "Sadece manuel"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "test_frameworks",
+    "category": "Test",
+    "title": "Test framework / araçları",
+    "description": "Örn. Go testing, Jest, Playwright, k6.",
+    "type": "short_text",
+    "required": false,
+    "order": 820,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "coverage_target",
+    "category": "Test",
+    "title": "Coverage hedefi (%)",
+    "description": "Hedef kod kapsamı yüzdesi.",
+    "type": "number",
+    "required": false,
+    "order": 830,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "ci_tests_required",
+    "category": "Test",
+    "title": "CI’da testler zorunlu mu?",
+    "description": "Merge / deploy öncesi test kapısı.",
+    "type": "boolean",
+    "required": true,
+    "order": 840,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "test_data_strategy",
+    "category": "Test",
+    "title": "Test verisi stratejisi",
+    "description": "Fixture / factory / snapshot tercihi.",
+    "type": "single_select",
+    "required": false,
+    "order": 850,
+    "options": [
+      {
+        "value": "fixtures",
+        "label": "Fixtures"
+      },
+      {
+        "value": "factories",
+        "label": "Factories"
+      },
+      {
+        "value": "snapshots",
+        "label": "Snapshots"
+      },
+      {
+        "value": "recorded",
+        "label": "Recorded traffic"
+      },
+      {
+        "value": "mixed",
+        "label": "Karışık"
+      },
+      {
+        "value": "none",
+        "label": "Yok"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "flaky_test_policy",
+    "category": "Test",
+    "title": "Flaky test politikası",
+    "description": "Kararsız testlerin yönetimi.",
+    "type": "long_text",
+    "required": false,
+    "order": 860,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "qa_ownership",
+    "category": "Test",
+    "title": "QA sahipliği",
+    "description": "Kalite sorumluluğunun kimde olduğu.",
+    "type": "single_select",
+    "required": false,
+    "order": 870,
+    "options": [
+      {
+        "value": "developers",
+        "label": "Geliştiriciler"
+      },
+      {
+        "value": "dedicated_qa",
+        "label": "Dedicated QA"
+      },
+      {
+        "value": "shared",
+        "label": "Paylaşımlı"
+      },
+      {
+        "value": "outsourced",
+        "label": "Dış kaynak"
+      },
+      {
+        "value": "none",
+        "label": "Tanımsız"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "hosting_model",
+    "category": "Dağıtım",
+    "title": "Barındırma modeli",
+    "description": "Çalışma ortamı modeli.",
+    "type": "single_select",
+    "required": true,
+    "order": 910,
+    "options": [
+      {
+        "value": "cloud_paas",
+        "label": "Cloud PaaS"
+      },
+      {
+        "value": "cloud_iaas",
+        "label": "Cloud IaaS"
+      },
+      {
+        "value": "kubernetes",
+        "label": "Kubernetes"
+      },
+      {
+        "value": "serverless",
+        "label": "Serverless"
+      },
+      {
+        "value": "on_prem",
+        "label": "On-premise"
+      },
+      {
+        "value": "hybrid",
+        "label": "Hibrit"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "cloud_providers",
+    "category": "Dağıtım",
+    "title": "Bulut sağlayıcı(lar)",
+    "description": "Kullanılan cloud / hosting sağlayıcıları.",
+    "type": "multi_select",
+    "required": false,
+    "order": 920,
+    "options": [
+      {
+        "value": "aws",
+        "label": "AWS"
+      },
+      {
+        "value": "gcp",
+        "label": "GCP"
+      },
+      {
+        "value": "azure",
+        "label": "Azure"
+      },
+      {
+        "value": "vercel",
+        "label": "Vercel"
+      },
+      {
+        "value": "netlify",
+        "label": "Netlify"
+      },
+      {
+        "value": "fly_io",
+        "label": "Fly.io"
+      },
+      {
+        "value": "digitalocean",
+        "label": "DigitalOcean"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      },
+      {
+        "value": "none",
+        "label": "Yok"
+      }
+    ],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "hosting_model",
+        "op": "in",
+        "value": [
+          "cloud_paas",
+          "cloud_iaas",
+          "kubernetes",
+          "serverless",
+          "hybrid"
+        ]
+      }
+    }
+  },
+  {
+    "key": "containerization",
+    "category": "Dağıtım",
+    "title": "Konteynerleştirme",
+    "description": "Container runtime tercihi.",
+    "type": "single_select",
+    "required": false,
+    "order": 930,
+    "options": [
+      {
+        "value": "none",
+        "label": "Yok"
+      },
+      {
+        "value": "docker",
+        "label": "Docker"
+      },
+      {
+        "value": "podman",
+        "label": "Podman"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "orchestration",
+    "category": "Dağıtım",
+    "title": "Orkestrasyon",
+    "description": "Container orchestration katmanı.",
+    "type": "single_select",
+    "required": false,
+    "order": 940,
+    "options": [
+      {
+        "value": "none",
+        "label": "Yok"
+      },
+      {
+        "value": "kubernetes",
+        "label": "Kubernetes"
+      },
+      {
+        "value": "ecs",
+        "label": "ECS"
+      },
+      {
+        "value": "nomad",
+        "label": "Nomad"
+      },
+      {
+        "value": "docker_compose",
+        "label": "Docker Compose"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "ci_cd_platform",
+    "category": "Dağıtım",
+    "title": "CI/CD platformu",
+    "description": "Build ve deploy pipeline araçları.",
+    "type": "multi_select",
+    "required": true,
+    "order": 950,
+    "options": [
+      {
+        "value": "github_actions",
+        "label": "GitHub Actions"
+      },
+      {
+        "value": "gitlab_ci",
+        "label": "GitLab CI"
+      },
+      {
+        "value": "circleci",
+        "label": "CircleCI"
+      },
+      {
+        "value": "jenkins",
+        "label": "Jenkins"
+      },
+      {
+        "value": "azure_devops",
+        "label": "Azure DevOps"
+      },
+      {
+        "value": "buildkite",
+        "label": "Buildkite"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      },
+      {
+        "value": "none",
+        "label": "Yok"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "environments",
+    "category": "Dağıtım",
+    "title": "Ortamlar",
+    "description": "Mevcut deployment ortamları.",
+    "type": "multi_select",
+    "required": true,
+    "order": 960,
+    "options": [
+      {
+        "value": "local",
+        "label": "Local"
+      },
+      {
+        "value": "dev",
+        "label": "Dev"
+      },
+      {
+        "value": "staging",
+        "label": "Staging"
+      },
+      {
+        "value": "prod",
+        "label": "Production"
+      },
+      {
+        "value": "preview",
+        "label": "Preview"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "release_strategy",
+    "category": "Dağıtım",
+    "title": "Release stratejisi",
+    "description": "Canlıya alma yöntemi.",
+    "type": "single_select",
+    "required": false,
+    "order": 970,
+    "options": [
+      {
+        "value": "rolling",
+        "label": "Rolling"
+      },
+      {
+        "value": "blue_green",
+        "label": "Blue-green"
+      },
+      {
+        "value": "canary",
+        "label": "Canary"
+      },
+      {
+        "value": "recreate",
+        "label": "Recreate"
+      },
+      {
+        "value": "feature_flags",
+        "label": "Feature flags"
+      },
+      {
+        "value": "mixed",
+        "label": "Karışık"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "rollback_strategy",
+    "category": "Dağıtım",
+    "title": "Rollback stratejisi",
+    "description": "Başarısız release sonrası geri alma.",
+    "type": "long_text",
+    "required": false,
+    "order": 980,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "infra_as_code",
+    "category": "Dağıtım",
+    "title": "Infrastructure as Code aracı",
+    "description": "Altyapı tanım araçları.",
+    "type": "multi_select",
+    "required": false,
+    "order": 990,
+    "options": [
+      {
+        "value": "none",
+        "label": "Yok"
+      },
+      {
+        "value": "terraform",
+        "label": "Terraform"
+      },
+      {
+        "value": "pulumi",
+        "label": "Pulumi"
+      },
+      {
+        "value": "cloudformation",
+        "label": "CloudFormation"
+      },
+      {
+        "value": "cdk",
+        "label": "CDK"
+      },
+      {
+        "value": "ansible",
+        "label": "Ansible"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "logging_approach",
+    "category": "Gözlemlenebilirlik",
+    "title": "Logging yaklaşımı",
+    "description": "Log toplama modeli.",
+    "type": "single_select",
+    "required": true,
+    "order": 1010,
+    "options": [
+      {
+        "value": "stdout",
+        "label": "Stdout / local"
+      },
+      {
+        "value": "centralized",
+        "label": "Merkezi"
+      },
+      {
+        "value": "both",
+        "label": "Her ikisi"
+      },
+      {
+        "value": "minimal",
+        "label": "Minimal"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "log_stack",
+    "category": "Gözlemlenebilirlik",
+    "title": "Log stack / araçları",
+    "description": "Örn. ELK, Loki, CloudWatch, Datadog Logs.",
+    "type": "short_text",
+    "required": false,
+    "order": 1020,
+    "options": [],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "logging_approach",
+        "op": "in",
+        "value": [
+          "centralized",
+          "both"
+        ]
+      }
+    }
+  },
+  {
+    "key": "metrics_stack",
+    "category": "Gözlemlenebilirlik",
+    "title": "Metrics araçları",
+    "description": "Metrik toplama ve görselleştirme.",
+    "type": "multi_select",
+    "required": false,
+    "order": 1030,
+    "options": [
+      {
+        "value": "none",
+        "label": "Yok"
+      },
+      {
+        "value": "prometheus",
+        "label": "Prometheus"
+      },
+      {
+        "value": "grafana",
+        "label": "Grafana"
+      },
+      {
+        "value": "datadog",
+        "label": "Datadog"
+      },
+      {
+        "value": "new_relic",
+        "label": "New Relic"
+      },
+      {
+        "value": "cloud_native",
+        "label": "Cloud-native"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "tracing_enabled",
+    "category": "Gözlemlenebilirlik",
+    "title": "Distributed tracing var mı?",
+    "description": "İstek zinciri izleme.",
+    "type": "boolean",
+    "required": false,
+    "order": 1040,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "tracing_stack",
+    "category": "Gözlemlenebilirlik",
+    "title": "Tracing araçları",
+    "description": "Tracing backend / SDK.",
+    "type": "multi_select",
+    "required": false,
+    "order": 1050,
+    "options": [
+      {
+        "value": "otel",
+        "label": "OpenTelemetry"
+      },
+      {
+        "value": "jaeger",
+        "label": "Jaeger"
+      },
+      {
+        "value": "zipkin",
+        "label": "Zipkin"
+      },
+      {
+        "value": "datadog",
+        "label": "Datadog APM"
+      },
+      {
+        "value": "honeycomb",
+        "label": "Honeycomb"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "tracing_enabled",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "error_tracking",
+    "category": "Gözlemlenebilirlik",
+    "title": "Hata takip aracı",
+    "description": "Runtime exception tracking.",
+    "type": "single_select",
+    "required": false,
+    "order": 1060,
+    "options": [
+      {
+        "value": "none",
+        "label": "Yok"
+      },
+      {
+        "value": "sentry",
+        "label": "Sentry"
+      },
+      {
+        "value": "bugsnag",
+        "label": "Bugsnag"
+      },
+      {
+        "value": "rollbar",
+        "label": "Rollbar"
+      },
+      {
+        "value": "cloud_native",
+        "label": "Cloud-native"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "alerting_channels",
+    "category": "Gözlemlenebilirlik",
+    "title": "Alert kanalları",
+    "description": "Bildirim kanalları.",
+    "type": "multi_select",
+    "required": false,
+    "order": 1070,
+    "options": [
+      {
+        "value": "none",
+        "label": "Yok"
+      },
+      {
+        "value": "email",
+        "label": "Email"
+      },
+      {
+        "value": "slack",
+        "label": "Slack"
+      },
+      {
+        "value": "pagerduty",
+        "label": "PagerDuty"
+      },
+      {
+        "value": "opsgenie",
+        "label": "Opsgenie"
+      },
+      {
+        "value": "webhook",
+        "label": "Webhook"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "slo_defined",
+    "category": "Gözlemlenebilirlik",
+    "title": "SLO / SLA tanımlı mı?",
+    "description": "Hizmet seviyesi hedefleri.",
+    "type": "boolean",
+    "required": false,
+    "order": 1080,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "slo_details",
+    "category": "Gözlemlenebilirlik",
+    "title": "SLO / SLA detayları",
+    "description": "Availability, latency, error budget vb.",
+    "type": "long_text",
+    "required": false,
+    "order": 1090,
+    "options": [],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "slo_defined",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "uses_ai",
+    "category": "AI ve LLM",
+    "title": "AI / LLM özellikleri kullanılıyor mu?",
+    "description": "Üründe veya geliştirme sürecinde AI kullanımı.",
+    "type": "boolean",
+    "required": true,
+    "order": 1110,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "ai_use_cases",
+    "category": "AI ve LLM",
+    "title": "AI kullanım amaçları",
+    "description": "Desteklenen AI senaryoları.",
+    "type": "multi_select",
+    "required": true,
+    "order": 1120,
+    "options": [
+      {
+        "value": "chat",
+        "label": "Chat / assistant"
+      },
+      {
+        "value": "codegen",
+        "label": "Kod üretimi"
+      },
+      {
+        "value": "summarization",
+        "label": "Özetleme"
+      },
+      {
+        "value": "classification",
+        "label": "Sınıflandırma"
+      },
+      {
+        "value": "extraction",
+        "label": "Bilgi çıkarma"
+      },
+      {
+        "value": "rag",
+        "label": "RAG"
+      },
+      {
+        "value": "agents",
+        "label": "Agentic workflows"
+      },
+      {
+        "value": "embedding_search",
+        "label": "Embedding search"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "uses_ai",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "llm_providers",
+    "category": "AI ve LLM",
+    "title": "LLM sağlayıcıları",
+    "description": "Model erişim sağlayıcıları.",
+    "type": "multi_select",
+    "required": true,
+    "order": 1130,
+    "options": [
+      {
+        "value": "openai",
+        "label": "OpenAI"
+      },
+      {
+        "value": "anthropic",
+        "label": "Anthropic"
+      },
+      {
+        "value": "google",
+        "label": "Google"
+      },
+      {
+        "value": "azure_openai",
+        "label": "Azure OpenAI"
+      },
+      {
+        "value": "aws_bedrock",
+        "label": "AWS Bedrock"
+      },
+      {
+        "value": "mistral",
+        "label": "Mistral"
+      },
+      {
+        "value": "local_oss",
+        "label": "Local / open-source"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "uses_ai",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "model_routing",
+    "category": "AI ve LLM",
+    "title": "Model seçim / routing stratejisi",
+    "description": "Görev bazlı model seçimi, fallback, cost/latency dengesi.",
+    "type": "long_text",
+    "required": false,
+    "order": 1140,
+    "options": [],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "uses_ai",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "prompt_management",
+    "category": "AI ve LLM",
+    "title": "Prompt yönetim yaklaşımı",
+    "description": "Prompt’ların saklanması ve versiyonlanması.",
+    "type": "single_select",
+    "required": false,
+    "order": 1150,
+    "options": [
+      {
+        "value": "inline_code",
+        "label": "Kod içi"
+      },
+      {
+        "value": "templates",
+        "label": "Template dosyaları"
+      },
+      {
+        "value": "versioned_store",
+        "label": "Versiyonlu store"
+      },
+      {
+        "value": "platform_managed",
+        "label": "Platform managed"
+      },
+      {
+        "value": "mixed",
+        "label": "Karışık"
+      }
+    ],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "uses_ai",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "rag_enabled",
+    "category": "AI ve LLM",
+    "title": "RAG kullanılıyor mu?",
+    "description": "Retrieval-augmented generation.",
+    "type": "boolean",
+    "required": false,
+    "order": 1160,
+    "options": [],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "uses_ai",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "vector_store",
+    "category": "AI ve LLM",
+    "title": "Vector store",
+    "description": "Embedding / retrieval deposu.",
+    "type": "single_select",
+    "required": false,
+    "order": 1170,
+    "options": [
+      {
+        "value": "none",
+        "label": "Yok"
+      },
+      {
+        "value": "pgvector",
+        "label": "pgvector"
+      },
+      {
+        "value": "pinecone",
+        "label": "Pinecone"
+      },
+      {
+        "value": "weaviate",
+        "label": "Weaviate"
+      },
+      {
+        "value": "qdrant",
+        "label": "Qdrant"
+      },
+      {
+        "value": "chroma",
+        "label": "Chroma"
+      },
+      {
+        "value": "elasticsearch",
+        "label": "Elasticsearch"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "rag_enabled",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "agent_orchestration",
+    "category": "AI ve LLM",
+    "title": "Agent orkestrasyon modeli",
+    "description": "Tek agent, multi-agent veya workflow graph.",
+    "type": "single_select",
+    "required": false,
+    "order": 1180,
+    "options": [
+      {
+        "value": "none",
+        "label": "Yok"
+      },
+      {
+        "value": "single_agent",
+        "label": "Single agent"
+      },
+      {
+        "value": "multi_agent",
+        "label": "Multi-agent"
+      },
+      {
+        "value": "workflow_graph",
+        "label": "Workflow graph"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "uses_ai",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "ai_eval_strategy",
+    "category": "AI ve LLM",
+    "title": "AI değerlendirme (eval) stratejisi",
+    "description": "Offline/online eval, golden set, human review.",
+    "type": "long_text",
+    "required": false,
+    "order": 1190,
+    "options": [],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "uses_ai",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "ai_safety_controls",
+    "category": "AI ve LLM",
+    "title": "AI güvenlik kontrolleri",
+    "description": "Çıktı ve araç kullanımı için güvenlik önlemleri.",
+    "type": "multi_select",
+    "required": false,
+    "order": 1200,
+    "options": [
+      {
+        "value": "none",
+        "label": "Yok"
+      },
+      {
+        "value": "output_filtering",
+        "label": "Output filtering"
+      },
+      {
+        "value": "prompt_injection_guards",
+        "label": "Prompt injection guards"
+      },
+      {
+        "value": "pii_redaction",
+        "label": "PII redaction"
+      },
+      {
+        "value": "human_in_loop",
+        "label": "Human-in-the-loop"
+      },
+      {
+        "value": "budget_limits",
+        "label": "Budget limits"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "uses_ai",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "ai_cost_controls",
+    "category": "AI ve LLM",
+    "title": "Maliyet kontrol politikası",
+    "description": "Token limit, model tiering, quota, caching.",
+    "type": "long_text",
+    "required": false,
+    "order": 1210,
+    "options": [],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "uses_ai",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "uses_mcp",
+    "category": "MCP ve araçlar",
+    "title": "MCP (Model Context Protocol) kullanılıyor mu?",
+    "description": "Harici araçlara MCP üzerinden erişim.",
+    "type": "boolean",
+    "required": true,
+    "order": 1310,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "mcp_server_categories",
+    "category": "MCP ve araçlar",
+    "title": "Kullanılan MCP / araç kategorileri",
+    "description": "Araç alanları; IDE’ye özel değil, protokol/kategori bazlı.",
+    "type": "multi_select",
+    "required": false,
+    "order": 1320,
+    "options": [
+      {
+        "value": "scm",
+        "label": "SCM / git"
+      },
+      {
+        "value": "issue_tracker",
+        "label": "Issue tracker"
+      },
+      {
+        "value": "docs",
+        "label": "Dokümantasyon"
+      },
+      {
+        "value": "database",
+        "label": "Database"
+      },
+      {
+        "value": "cloud",
+        "label": "Cloud / infra"
+      },
+      {
+        "value": "monitoring",
+        "label": "Monitoring"
+      },
+      {
+        "value": "browser",
+        "label": "Browser"
+      },
+      {
+        "value": "filesystem",
+        "label": "Filesystem"
+      },
+      {
+        "value": "custom_internal",
+        "label": "Custom internal"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "uses_mcp",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "mcp_servers_list",
+    "category": "MCP ve araçlar",
+    "title": "MCP sunucuları / araçlar listesi",
+    "description": "Sunucu veya araç adlarını serbest metin olarak listeleyin.",
+    "type": "long_text",
+    "required": false,
+    "order": 1330,
+    "options": [],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "uses_mcp",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "tool_calling_policy",
+    "category": "MCP ve araçlar",
+    "title": "Araç çağırma politikası",
+    "description": "Hangi araçların ne kadar serbest çağrılabileceği.",
+    "type": "single_select",
+    "required": false,
+    "order": 1340,
+    "options": [
+      {
+        "value": "unrestricted",
+        "label": "Sınırsız"
+      },
+      {
+        "value": "allowlist",
+        "label": "Allowlist"
+      },
+      {
+        "value": "approval_required",
+        "label": "Onay zorunlu"
+      },
+      {
+        "value": "disabled",
+        "label": "Kapalı"
+      }
+    ],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "uses_mcp",
+        "op": "eq",
+        "value": true
+      }
+    }
+  },
+  {
+    "key": "external_integrations",
+    "category": "MCP ve araçlar",
+    "title": "Harici entegrasyonlar",
+    "description": "MCP dışı veya genel third-party entegrasyonlar.",
+    "type": "multi_select",
+    "required": false,
+    "order": 1350,
+    "options": [
+      {
+        "value": "none",
+        "label": "Yok"
+      },
+      {
+        "value": "github",
+        "label": "GitHub"
+      },
+      {
+        "value": "gitlab",
+        "label": "GitLab"
+      },
+      {
+        "value": "jira",
+        "label": "Jira"
+      },
+      {
+        "value": "linear",
+        "label": "Linear"
+      },
+      {
+        "value": "slack",
+        "label": "Slack"
+      },
+      {
+        "value": "notion",
+        "label": "Notion"
+      },
+      {
+        "value": "stripe",
+        "label": "Stripe"
+      },
+      {
+        "value": "sendgrid",
+        "label": "SendGrid"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "integration_auth_model",
+    "category": "MCP ve araçlar",
+    "title": "Entegrasyon auth modeli",
+    "description": "Harici sistemlere bağlanırken kullanılan kimlik modeli.",
+    "type": "multi_select",
+    "required": false,
+    "order": 1360,
+    "options": [
+      {
+        "value": "oauth",
+        "label": "OAuth"
+      },
+      {
+        "value": "api_key",
+        "label": "API key"
+      },
+      {
+        "value": "webhook_secret",
+        "label": "Webhook secret"
+      },
+      {
+        "value": "service_account",
+        "label": "Service account"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": {
+      "show_if": {
+        "question_key": "external_integrations",
+        "op": "not_in",
+        "value": [
+          "none"
+        ]
+      }
+    }
+  },
+  {
+    "key": "automation_workflows",
+    "category": "MCP ve araçlar",
+    "title": "Otomasyon iş akışları (özet)",
+    "description": "CI tetikleri, botlar, sync job’ları vb.",
+    "type": "long_text",
+    "required": false,
+    "order": 1370,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "vcs_platform",
+    "category": "Geliştirme standartları",
+    "title": "Versiyon kontrol platformu",
+    "description": "Kaynak kod barındırma platformu.",
+    "type": "single_select",
+    "required": true,
+    "order": 1410,
+    "options": [
+      {
+        "value": "github",
+        "label": "GitHub"
+      },
+      {
+        "value": "gitlab",
+        "label": "GitLab"
+      },
+      {
+        "value": "bitbucket",
+        "label": "Bitbucket"
+      },
+      {
+        "value": "azure_repos",
+        "label": "Azure Repos"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "branching_strategy",
+    "category": "Geliştirme standartları",
+    "title": "Branch stratejisi",
+    "description": "Branch ve release akışı.",
+    "type": "single_select",
+    "required": true,
+    "order": 1420,
+    "options": [
+      {
+        "value": "trunk_based",
+        "label": "Trunk-based"
+      },
+      {
+        "value": "gitflow",
+        "label": "GitFlow"
+      },
+      {
+        "value": "github_flow",
+        "label": "GitHub Flow"
+      },
+      {
+        "value": "release_branches",
+        "label": "Release branches"
+      },
+      {
+        "value": "other",
+        "label": "Diğer"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "code_review_required",
+    "category": "Geliştirme standartları",
+    "title": "Code review zorunlu mu?",
+    "description": "Merge öncesi inceleme kapısı.",
+    "type": "boolean",
+    "required": true,
+    "order": 1430,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "lint_format_tooling",
+    "category": "Geliştirme standartları",
+    "title": "Lint / format araçları",
+    "description": "Örn. ESLint, Prettier, golangci-lint, ruff.",
+    "type": "short_text",
+    "required": false,
+    "order": 1440,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "coding_conventions",
+    "category": "Geliştirme standartları",
+    "title": "Kodlama kuralları / stil kılavuzu",
+    "description": "Takım standartları ve yasak/tercih edilen kalıplar.",
+    "type": "long_text",
+    "required": false,
+    "order": 1450,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "commit_convention",
+    "category": "Geliştirme standartları",
+    "title": "Commit convention",
+    "description": "Commit mesaj standardı.",
+    "type": "single_select",
+    "required": false,
+    "order": 1460,
+    "options": [
+      {
+        "value": "none",
+        "label": "Yok"
+      },
+      {
+        "value": "conventional_commits",
+        "label": "Conventional Commits"
+      },
+      {
+        "value": "angular",
+        "label": "Angular convention"
+      },
+      {
+        "value": "custom",
+        "label": "Özel"
+      }
+    ],
+    "conditional_rule": null
+  },
+  {
+    "key": "docs_as_code",
+    "category": "Geliştirme standartları",
+    "title": "Docs-as-code uygulaması var mı?",
+    "description": "Dokümanların repo içinde versiyonlanması.",
+    "type": "boolean",
+    "required": false,
+    "order": 1470,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "adr_practice",
+    "category": "Geliştirme standartları",
+    "title": "ADR / mimari karar kayıtları tutuluyor mu?",
+    "description": "Architecture Decision Records pratiği.",
+    "type": "boolean",
+    "required": false,
+    "order": 1480,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "definition_of_done",
+    "category": "Geliştirme standartları",
+    "title": "Definition of Done",
+    "description": "Tamamlanmış iş tanımı.",
+    "type": "long_text",
+    "required": false,
+    "order": 1490,
+    "options": [],
+    "conditional_rule": null
+  },
+  {
+    "key": "ai_coding_guidelines",
+    "category": "Geliştirme standartları",
+    "title": "AI destekli geliştirme kuralları",
+    "description": "AI ile kod üretirken uyulacak takım kuralları (IDE’den bağımsız).",
+    "type": "long_text",
+    "required": false,
+    "order": 1500,
+    "options": [],
+    "conditional_rule": null
+  }
+]

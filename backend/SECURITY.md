@@ -59,14 +59,16 @@ Baseline security controls implemented on the `security/hardening` branch (July 
 | SC-17 | Gateway | Suppress internal DB errors in dynamic handler | Generic `"an internal error occurred"` to clients; detail in logs | CWE-209 | ✅ Implemented |
 | SC-18 | Gateway | Document intentional proxy SSRF sink | `#nosec G704` on admin-configured outbound proxy; accepted risk entry below | CWE-918 | ✅ Documented |
 | SC-19 | Verification | Automated vulnerability scanning gate | `govulncheck` clean; `gosec` clean with 2 audited suppressions | — | ✅ Verified |
+| SC-20 | Authorization | Org-scoped questionnaire set visibility | `QuestionnaireSet.VisibleTo` + `GetSetUseCase` deny foreign private sets | CWE-639 | ✅ Implemented |
+| SC-21 | Authorization | Production Auth/RBAC wiring guard | `ValidateSecureAuthWiring` fails startup when `APP_ENV=production\|prod` and Auth/RBAC nil | CWE-306 | ✅ Implemented |
 
 ### Control summary
 
 | Metric | Value |
 | ------ | ----- |
 | Registry version | **v0.1** |
-| Total controls | **19** |
-| Implemented | **18** |
+| Total controls | **21** |
+| Implemented | **20** |
 | Documented accepted risk | **1** (SC-18) |
 | Go toolchain | **1.26.4** |
 | Verification | `go test ./...`, `govulncheck`, `gosec` |
@@ -75,6 +77,7 @@ Baseline security controls implemented on the `security/hardening` branch (July 
 
 | Variable | Purpose | Production guidance |
 | -------- | ------- | ------------------- |
+| `APP_ENV` | Runtime environment (`development`, `production`, …) | Set `production` (or `prod`) so Auth/RBAC wiring is required |
 | `JWT_SECRET` | HS256 signing key | Required; never use the default value |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated browser origins | Set explicit origins; avoid `*` |
 | `MAX_BODY_BYTES` | Request body cap | Keep at or below gateway policy limits |

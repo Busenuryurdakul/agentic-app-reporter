@@ -8,8 +8,12 @@ import (
 )
 
 func TestLoad_Defaults(t *testing.T) {
+	t.Setenv("APP_ENV", "development")
+
 	cfg := Load()
 
+	assert.Equal(t, "development", cfg.Environment)
+	assert.False(t, cfg.IsProduction())
 	assert.Equal(t, "0.0.0.0", cfg.Server.Host)
 	assert.Equal(t, 8080, cfg.Server.Port)
 	assert.Equal(t, "localhost", cfg.Database.Host)
@@ -19,6 +23,13 @@ func TestLoad_Defaults(t *testing.T) {
 	assert.Equal(t, 6379, cfg.Redis.Port)
 	assert.Equal(t, "info", cfg.Log.Level)
 	assert.Equal(t, "json", cfg.Log.Format)
+}
+
+func TestConfig_IsProduction(t *testing.T) {
+	assert.True(t, (&Config{Environment: "production"}).IsProduction())
+	assert.True(t, (&Config{Environment: "PROD"}).IsProduction())
+	assert.False(t, (&Config{Environment: "development"}).IsProduction())
+	assert.False(t, (&Config{Environment: "staging"}).IsProduction())
 }
 
 func TestLoad_EnvironmentOverrides(t *testing.T) {

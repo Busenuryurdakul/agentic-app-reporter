@@ -7,8 +7,8 @@ import (
 // CORSOptions builds chi/cors options with safe credential handling.
 func CORSOptions(origins []string) cors.Options {
 	opts := cors.Options{
-		AllowedOrigins:   origins,
-		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowedOrigins: origins,
+		AllowedMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders: []string{
 			"Accept",
 			"Authorization",

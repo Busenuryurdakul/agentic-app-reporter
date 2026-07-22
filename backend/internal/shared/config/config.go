@@ -11,13 +11,28 @@ import (
 
 // Config holds all application configuration.
 type Config struct {
-	Server    ServerConfig
-	Database  DatabaseConfig
-	Redis     RedisConfig
-	JWT       JWTConfig
-	Kafka     KafkaConfig
-	WebSocket WebSocketConfig
-	Log       LogConfig
+	Environment string // APP_ENV: development, staging, production, …
+	Server      ServerConfig
+	Database    DatabaseConfig
+	Redis       RedisConfig
+	JWT         JWTConfig
+	Kafka       KafkaConfig
+	WebSocket   WebSocketConfig
+	Log         LogConfig
+}
+
+// IsProduction reports whether the process is running in a production-like environment.
+// Matches APP_ENV values "production" and "prod" (case-insensitive).
+func (c *Config) IsProduction() bool {
+	if c == nil {
+		return false
+	}
+	switch strings.ToLower(strings.TrimSpace(c.Environment)) {
+	case "production", "prod":
+		return true
+	default:
+		return false
+	}
 }
 
 // WebSocketConfig holds real-time WebSocket settings.
@@ -31,13 +46,13 @@ type WebSocketConfig struct {
 
 // ServerConfig holds HTTP server settings.
 type ServerConfig struct {
-	Host              string
-	Port              int
-	ReadTimeout       time.Duration
-	WriteTimeout      time.Duration
-	IdleTimeout       time.Duration
+	Host               string
+	Port               int
+	ReadTimeout        time.Duration
+	WriteTimeout       time.Duration
+	IdleTimeout        time.Duration
 	CORSAllowedOrigins []string
-	MaxBodyBytes      int64
+	MaxBodyBytes       int64
 }
 
 // DatabaseConfig holds PostgreSQL connection settings.
@@ -102,6 +117,7 @@ type LogConfig struct {
 // Load reads configuration from environment variables with sensible defaults.
 func Load() *Config {
 	return &Config{
+		Environment: envOrDefault("APP_ENV", "development"),
 		Server: ServerConfig{
 			Host:               envOrDefault("SERVER_HOST", "0.0.0.0"),
 			Port:               envOrDefaultInt("SERVER_PORT", 8080),

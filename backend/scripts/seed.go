@@ -1,7 +1,9 @@
 package main
 
 // seed.go - Database seeding script
-// Run with: go run scripts/seed.go
+// Run with: go run ./scripts
+// (Uses multiple files in this package - do not run `go run scripts/seed.go`
+// directly, or seed_questionnaire.go will not be compiled in.)
 
 import (
 	"context"
@@ -35,6 +37,10 @@ func main() {
 
 	if err := seedRoles(ctx, db); err != nil {
 		log.Fatalf("Failed to seed roles: %v", err)
+	}
+
+	if err := SeedQuestionnaires(ctx, db); err != nil {
+		log.Fatalf("Failed to seed questionnaires: %v", err)
 	}
 
 	fmt.Println("✅ Database seeded successfully!")

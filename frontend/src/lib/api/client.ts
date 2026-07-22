@@ -1,5 +1,6 @@
 import { ApiError } from "@/lib/api/errors";
 import type { ApiErrorBody } from "@/lib/api/types";
+import { publishSessionFromStorage } from "@/lib/auth/session-store";
 import { authStorage } from "@/lib/auth/storage";
 import { appConfig } from "@/lib/config";
 
@@ -89,6 +90,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
 
     if (response.status === 401 && auth) {
       authStorage.clearSession();
+      publishSessionFromStorage();
     }
 
     throw new ApiError(message, response.status, errorBody);

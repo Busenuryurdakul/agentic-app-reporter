@@ -42,13 +42,14 @@ func (uc *GetWorkspaceUseCase) Execute(ctx context.Context, workspaceID uuid.UUI
 
 func toWorkspaceInfo(workspace *model.Workspace) *dto.WorkspaceInfo {
 	return &dto.WorkspaceInfo{
-		ID:             workspace.ID,
-		OrganizationID: workspace.OrganizationID,
-		Name:           workspace.Name,
-		Slug:           workspace.Slug,
-		Description:    workspace.Description,
-		Status:         string(workspace.Status),
-		CreatedAt:      workspace.CreatedAt,
-		UpdatedAt:      workspace.UpdatedAt,
+		ID:                        workspace.ID,
+		OrganizationID:            workspace.OrganizationID,
+		Name:                      workspace.Name,
+		Slug:                      workspace.Slug,
+		Description:               workspace.Description,
+		Status:                    string(workspace.Status),
+		PreferredDocumentLanguage: workspace.PreferredDocumentLanguage,
+		CreatedAt:                 workspace.CreatedAt,
+		UpdatedAt:                 workspace.UpdatedAt,
 	}
 }

@@ -16,6 +16,8 @@ import (
 	auditHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/audit"
 	"github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/health"
 	iamHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/iam"
+	projectprofileHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/projectprofile"
+	questionnaireHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/questionnaire"
 	realtimeHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/realtime"
 	tenantHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/tenant"
 
@@ -49,18 +51,20 @@ type Dependencies struct {
 	RBACService iamService.RBACService
 
 	// Handlers
-	IAMHandler      *iamHandler.Handler
-	TenantHandler   *tenantHandler.Handler
-	APIMgmtHandler  *apimgmtHandler.Handler
-	AuditHandler    *auditHandler.Handler
-	RealtimeHandler *realtimeHandler.Handler
+	IAMHandler            *iamHandler.Handler
+	TenantHandler         *tenantHandler.Handler
+	APIMgmtHandler        *apimgmtHandler.Handler
+	AuditHandler          *auditHandler.Handler
+	RealtimeHandler       *realtimeHandler.Handler
+	ProjectProfileHandler *projectprofileHandler.Handler
+	QuestionnaireHandler  *questionnaireHandler.Handler
 
 	// Gateway
 	GatewayPipeline *gateway.Pipeline
 
 	// Repos needed for middleware
-	OrgRepo        tenantRepo.OrgRepository
-	WorkspaceRepo  tenantRepo.WorkspaceRepository
+	OrgRepo       tenantRepo.OrgRepository
+	WorkspaceRepo tenantRepo.WorkspaceRepository
 }
 
 // New creates the root Chi router with all middleware and routes.
@@ -106,15 +110,15 @@ func New(deps Dependencies) *chi.Mux {
 				r.Use(middleware.TenantResolverWithWorkspace(deps.OrgRepo, deps.WorkspaceRepo))
 			}
 
-			// WebSocket endpoint (before gateway pipeline — upgrade requests are not HTTP proxy)
-			if deps.RealtimeHandler != nil {
-				r.Get("/ws", deps.RealtimeHandler.Connect)
-			}
-
-			// Gateway pipeline (rate limiting, permission enforcement for managed endpoints)
-			// Must be applied before specific routes so it can handle dynamic endpoints
+			// Gateway pipeline (rate limiting, permission enforcement for managed endpoints).
+			// Must be registered before any routes on this mux (chi rule).
 			if deps.GatewayPipeline != nil {
 				r.Use(deps.GatewayPipeline.Enforce)
+			}
+
+			// WebSocket endpoint (upgrade requests are not HTTP proxy)
+			if deps.RealtimeHandler != nil {
+				r.Get("/ws", deps.RealtimeHandler.Connect)
 			}
 
 			// User routes
@@ -191,6 +195,37 @@ func New(deps Dependencies) *chi.Mux {
 				r.With(maybeRequirePermission(deps.RBACService, "org:read")).Get("/users/{userId}/audit-logs", deps.AuditHandler.ListByUser)
 			}
 
+			// AI Development Configuration Studio: questionnaire sets (global, org-scoped listing)
+			if deps.QuestionnaireHandler != nil {
+				r.Route("/questionnaires", func(r chi.Router) {
+					r.With(maybeRequirePermission(deps.RBACService, "questionnaire:read")).Get("/", deps.QuestionnaireHandler.ListSets)
+					r.With(maybeRequirePermission(deps.RBACService, "questionnaire:read")).Get("/{id}", deps.QuestionnaireHandler.GetSet)
+				})
+			}
+
+			// AI Development Configuration Studio: workspace-scoped profile & questionnaire routes.
+			// Resolved via X-Organization-ID (TenantResolver) rather than the /organizations/{orgId} path.
+			r.Route("/workspaces/{workspaceId}", func(r chi.Router) {
+				if deps.ProjectProfileHandler != nil {
+					r.Route("/profile", func(r chi.Router) {
+						r.With(maybeRequirePermission(deps.RBACService, "profile:read")).Get("/", deps.ProjectProfileHandler.GetProfile)
+						r.With(maybeRequirePermission(deps.RBACService, "profile:write")).Put("/", deps.ProjectProfileHandler.UpsertProfile)
+						r.With(maybeRequirePermission(deps.RBACService, "profile:read")).Get("/completeness", deps.ProjectProfileHandler.GetCompleteness)
+					})
+				}
+
+				if deps.QuestionnaireHandler != nil {
+					r.With(maybeRequirePermission(deps.RBACService, "questionnaire:read")).Get("/questions", deps.QuestionnaireHandler.ListWorkspaceQuestions)
+					r.With(maybeRequirePermission(deps.RBACService, "questionnaire:read")).Get("/missing-information", deps.QuestionnaireHandler.MissingInformation)
+
+					r.Route("/answers", func(r chi.Router) {
+						r.With(maybeRequirePermission(deps.RBACService, "answer:read")).Get("/", deps.QuestionnaireHandler.ListAnswers)
+						r.With(maybeRequirePermission(deps.RBACService, "answer:write")).Post("/bulk", deps.QuestionnaireHandler.BulkUpsertAnswers)
+						r.With(maybeRequirePermission(deps.RBACService, "answer:write")).Put("/{questionId}", deps.QuestionnaireHandler.UpsertAnswer)
+					})
+				}
+			})
+
 			// Catch-all handler for managed endpoints (must be last in the group)
 			// This allows the gateway pipeline to handle dynamic endpoints like /api/v1/products
 			// The gateway middleware will validate and return responses for managed endpoints
@@ -216,7 +251,7 @@ func New(deps Dependencies) *chi.Mux {
 			_, _ = w.Write([]byte(`{"error":"not found","code":404}`))
 			return
 		}
-		
+
 		// For /api/v1 paths, check if gateway pipeline already handled it
 		// If not, return 404 (gateway would have returned response if endpoint existed)
 		w.Header().Set("Content-Type", "application/json")

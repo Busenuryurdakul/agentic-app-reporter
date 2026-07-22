@@ -13,6 +13,13 @@ import { authApi } from "@/lib/api/auth";
 import { getErrorMessage } from "@/lib/api/errors";
 import type { LoginRequest, Organization, RegisterRequest, UserInfo } from "@/lib/api/types";
 import { authStorage } from "@/lib/auth/storage";
+import {
+  getServerSessionSnapshot,
+  getSessionSnapshot,
+  publishSessionFromStorage,
+  setSessionRefreshing,
+  subscribeSession,
+} from "@/lib/auth/session-store";
 
 type AuthContextValue = {
   user: UserInfo | null;
@@ -29,59 +36,35 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-type SessionSnapshot = {
-  token: string | null;
-  user: UserInfo | null;
-  organization: Organization | null;
-  isRefreshing: boolean;
-};
-
-const emptySession: SessionSnapshot = {
-  token: null,
-  user: null,
-  organization: null,
-  isRefreshing: false,
-};
-
-let isRefreshing = false;
-const sessionListeners = new Set<() => void>();
-
-function readSession(): SessionSnapshot {
-  return {
-    token: authStorage.getToken(),
-    user: authStorage.getUser(),
-    organization: authStorage.getOrganization(),
-    isRefreshing,
-  };
+function subscribeNoop() {
+  return () => {};
 }
 
-function emitSessionChange() {
-  sessionListeners.forEach((listener) => listener());
+function getClientMounted() {
+  return true;
 }
 
-function setRefreshing(value: boolean) {
-  if (isRefreshing === value) return;
-  isRefreshing = value;
-  emitSessionChange();
-}
-
-function subscribeSession(listener: () => void) {
-  sessionListeners.add(listener);
-  return () => sessionListeners.delete(listener);
-}
-
-function getServerSessionSnapshot(): SessionSnapshot {
-  return emptySession;
+function getServerMounted() {
+  return false;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  // SSR snapshot is empty; stay in loading until the client store is active.
+  // Primitive true/false snapshots stay Object.is-stable (no effect setState).
+  const hasHydrated = useSyncExternalStore(
+    subscribeNoop,
+    getClientMounted,
+    getServerMounted,
+  );
   const session = useSyncExternalStore(
     subscribeSession,
-    readSession,
+    getSessionSnapshot,
     getServerSessionSnapshot,
   );
 
   useEffect(() => {
+    if (!hasHydrated) return;
+
     const token = authStorage.getToken();
     if (!token) {
       return;
@@ -91,30 +74,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     void Promise.resolve().then(async () => {
       if (cancelled) return;
-      setRefreshing(true);
+      setSessionRefreshing(true);
       try {
         const freshUser = await authApi.me(token);
         if (cancelled) return;
         authStorage.setSession(token, freshUser);
-        emitSessionChange();
+        publishSessionFromStorage();
       } catch {
         if (cancelled) return;
         authStorage.clearSession();
-        emitSessionChange();
+        publishSessionFromStorage();
       } finally {
-        if (!cancelled) setRefreshing(false);
+        if (!cancelled) setSessionRefreshing(false);
       }
     });
 
     return () => {
       cancelled = true;
     };
-  }, [session.token]);
+  }, [hasHydrated, session.token]);
 
   const login = useCallback(async (payload: LoginRequest) => {
     const result = await authApi.login(payload);
     authStorage.setSession(result.token, result.user);
-    emitSessionChange();
+    publishSessionFromStorage();
   }, []);
 
   const register = useCallback(async (payload: RegisterRequest) => {
@@ -124,18 +107,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password: payload.password,
     });
     authStorage.setSession(result.token, result.user);
-    emitSessionChange();
+    publishSessionFromStorage();
   }, []);
 
   const logout = useCallback(() => {
     authStorage.clearSession();
     authStorage.setOrganization(null);
-    emitSessionChange();
+    publishSessionFromStorage();
   }, []);
 
   const setOrganization = useCallback((org: Organization | null) => {
     authStorage.setOrganization(org);
-    emitSessionChange();
+    publishSessionFromStorage();
   }, []);
 
   const refreshUser = useCallback(async () => {
@@ -145,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const freshUser = await authApi.me(currentToken);
     authStorage.setSession(currentToken, freshUser);
-    emitSessionChange();
+    publishSessionFromStorage();
   }, []);
 
   const value = useMemo<AuthContextValue>(
@@ -153,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user: session.user,
       token: session.token,
       organization: session.organization,
-      isLoading: session.isRefreshing,
+      isLoading: !hasHydrated || session.isRefreshing,
       isAuthenticated: Boolean(session.token && session.user),
       login,
       register,
@@ -166,6 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session.token,
       session.organization,
       session.isRefreshing,
+      hasHydrated,
       login,
       register,
       logout,

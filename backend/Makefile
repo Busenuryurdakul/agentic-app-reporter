@@ -78,4 +78,4 @@ clean:
 ## seed: Seed the database with sample data
 seed:
 	@echo "Seeding database..."
-	go run ./scripts/seed.go
+	go run ./scripts

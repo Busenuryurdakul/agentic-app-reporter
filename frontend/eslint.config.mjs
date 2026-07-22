@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Local one-off smoke scripts (not product code)
+    "tmp_*.cjs",
+    "tmp_*.js",
   ]),
 ]);
 

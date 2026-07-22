@@ -16,17 +16,17 @@ import (
 
 // Handler provides Tenant HTTP handlers.
 type Handler struct {
-	createOrgUC        *usecase.CreateOrgUseCase
-	listOrgsUC         *usecase.ListOrgsUseCase
-	createAppUC        *usecase.CreateAppUseCase
-	manageKeysUC       *usecase.ManageAPIKeysUseCase
-	createWorkspaceUC  *usecase.CreateWorkspaceUseCase
-	listWorkspacesUC   *usecase.ListWorkspacesUseCase
-	getWorkspaceUC     *usecase.GetWorkspaceUseCase
-	updateWorkspaceUC  *usecase.UpdateWorkspaceUseCase
-	deleteWorkspaceUC  *usecase.DeleteWorkspaceUseCase
-	orgRepo            repository.OrgRepository
-	appRepo            repository.AppRepository
+	createOrgUC       *usecase.CreateOrgUseCase
+	listOrgsUC        *usecase.ListOrgsUseCase
+	createAppUC       *usecase.CreateAppUseCase
+	manageKeysUC      *usecase.ManageAPIKeysUseCase
+	createWorkspaceUC *usecase.CreateWorkspaceUseCase
+	listWorkspacesUC  *usecase.ListWorkspacesUseCase
+	getWorkspaceUC    *usecase.GetWorkspaceUseCase
+	updateWorkspaceUC *usecase.UpdateWorkspaceUseCase
+	deleteWorkspaceUC *usecase.DeleteWorkspaceUseCase
+	orgRepo           repository.OrgRepository
+	appRepo           repository.AppRepository
 }
 
 // NewHandler creates a new Tenant handler.
@@ -160,7 +160,7 @@ func (h *Handler) GetApp(w http.ResponseWriter, r *http.Request) {
 		Name:           app.Name,
 		Slug:           app.Slug,
 		Status:         string(app.Status),
-		SLATier:       app.SLATier,
+		SLATier:        app.SLATier,
 		CreatedAt:      app.CreatedAt,
 	})
 }
@@ -188,7 +188,7 @@ func (h *Handler) ListApps(w http.ResponseWriter, r *http.Request) {
 			Name:           a.Name,
 			Slug:           a.Slug,
 			Status:         string(a.Status),
-			SLATier:       a.SLATier,
+			SLATier:        a.SLATier,
 			CreatedAt:      a.CreatedAt,
 		})
 	}

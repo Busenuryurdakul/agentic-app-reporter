@@ -58,3 +58,14 @@ Do not store raw prompts/outputs by default.
 - Frontend → Vercel (`frontend/`)
 - Backend → Render (`backend/`)
 - Database → PostgreSQL
+
+---
+
+## Phase status
+
+| Phase | Status |
+|-------|--------|
+| 1 Foundation | Done (auth, org, workspace, shell) |
+| 2 Profile + Questionnaire | Done (API + Turkish UI) |
+| 3 Generation / LLMProvider | Not started |
+| 4+ Scoring, monitoring, export | Not started |

@@ -59,6 +59,9 @@ func (uc *UpdateWorkspaceUseCase) Execute(ctx context.Context, workspaceID uuid.
 	if req.Status != "" {
 		workspace.Status = model.WorkspaceStatus(req.Status)
 	}
+	if req.PreferredDocumentLanguage != "" {
+		workspace.PreferredDocumentLanguage = req.PreferredDocumentLanguage
+	}
 
 	if err := uc.workspaceRepo.Update(ctx, workspace); err != nil {
 		return nil, domainErr.New(domainErr.ErrInternal, "failed to update workspace", err)
