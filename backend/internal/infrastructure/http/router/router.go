@@ -14,9 +14,11 @@ import (
 	// Handlers
 	apimgmtHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/apimanagement"
 	auditHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/audit"
+	exportHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/export"
 	generationHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/generation"
 	"github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/health"
 	iamHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/iam"
+	observeHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/observe"
 	projectprofileHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/projectprofile"
 	questionnaireHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/questionnaire"
 	realtimeHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/realtime"
@@ -47,6 +49,7 @@ type Dependencies struct {
 
 	CORSAllowedOrigins []string
 	MaxBodyBytes       int64
+	Draining           func() bool
 
 	// Services
 	AuthService iamService.AuthService
@@ -62,6 +65,8 @@ type Dependencies struct {
 	ProjectProfileHandler *projectprofileHandler.Handler
 	QuestionnaireHandler  *questionnaireHandler.Handler
 	GenerationHandler     *generationHandler.Handler
+	ObserveHandler        *observeHandler.Handler
+	ExportHandler         *exportHandler.Handler
 
 	// Gateway
 	GatewayPipeline *gateway.Pipeline
@@ -86,6 +91,9 @@ func New(deps Dependencies) *chi.Mux {
 
 	// Health endpoints
 	healthHandler := health.NewHandler(deps.DB, deps.Redis)
+	if deps.Draining != nil {
+		healthHandler.SetDrainingChecker(deps.Draining)
+	}
 	r.Get("/health/live", healthHandler.Liveness)
 	r.Get("/health/ready", healthHandler.Readiness)
 
@@ -241,7 +249,19 @@ func New(deps Dependencies) *chi.Mux {
 						r.With(maybeRequirePermission(deps.RBACService, "generation:run")).Post("/generate", deps.GenerationHandler.GenerateDocument)
 						r.With(maybeRequirePermission(deps.RBACService, "document:read")).Get("/{documentId}", deps.GenerationHandler.GetDocument)
 						r.With(maybeRequirePermission(deps.RBACService, "generation:run")).Post("/{documentId}/regenerate", deps.GenerationHandler.RegenerateDocument)
+						r.With(maybeRequirePermission(deps.RBACService, "document:approve")).Post("/{documentId}/approve", deps.GenerationHandler.ApproveDocument)
 					})
+				}
+
+				// Phase 4 S1: readiness + generation observe summary (document:read; no new permission)
+				if deps.ObserveHandler != nil {
+					r.With(maybeRequirePermission(deps.RBACService, "document:read")).Get("/readiness", deps.ObserveHandler.GetReadiness)
+					r.With(maybeRequirePermission(deps.RBACService, "document:read")).Get("/observe/summary", deps.ObserveHandler.GetSummary)
+				}
+
+				// Phase 4 S5: sync Markdown / ZIP export
+				if deps.ExportHandler != nil {
+					r.With(maybeRequirePermission(deps.RBACService, "export:create")).Post("/exports", deps.ExportHandler.CreateExport)
 				}
 			})
 

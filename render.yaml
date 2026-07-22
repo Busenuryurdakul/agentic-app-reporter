@@ -1,0 +1,47 @@
+# Render Blueprint — agentic-app-reporter backend
+# Docs: https://render.com/docs/infrastructure-as-code
+#
+# Deploy: Render Dashboard → New → Blueprint → connect this repo.
+# After deploy, set CORS_ALLOWED_ORIGINS to your frontend URL(s).
+
+services:
+  - type: web
+    name: agentic-app-reporter-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    rootDir: backend
+    dockerfilePath: ./deployments/Dockerfile
+    healthCheckPath: /health/live
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: SERVER_HOST
+        value: 0.0.0.0
+      - key: KAFKA_ENABLED
+        value: "false"
+      - key: LLM_ENABLED
+        value: "true"
+      - key: LLM_PROVIDER
+        value: mock
+      - key: LLM_ALLOW_MOCK_IN_PRODUCTION
+        value: "true"
+      - key: LOG_LEVEL
+        value: info
+      - key: LOG_FORMAT
+        value: json
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: agentic-app-reporter-db
+          property: connectionString
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+
+databases:
+  - name: agentic-app-reporter-db
+    plan: free
+    region: frankfurt
+    databaseName: masterfabric
+    user: masterfabric

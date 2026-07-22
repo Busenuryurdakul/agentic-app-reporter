@@ -1,10 +1,12 @@
-.PHONY: build run test lint migrate migrate-down docker-up docker-down clean help
+.PHONY: build run test lint migrate migrate-down docker-up docker-down compose-up-full compose-scale-api clean help
 
 APP_NAME := masterfabric
 BUILD_DIR := bin
 MAIN_PATH := ./cmd/server
 MIGRATION_DIR := internal/infrastructure/postgres/migrations
 DB_DSN ?= postgres://masterfabric:masterfabric@localhost:5432/masterfabric?sslmode=disable
+COMPOSE_FILE := deployments/docker-compose.yml
+COMPOSE := docker compose -f $(COMPOSE_FILE)
 
 ## help: Show this help message
 help:
@@ -58,12 +60,26 @@ migrate-status:
 ## docker-up: Start Docker Compose services
 docker-up:
 	@echo "Starting Docker services..."
-	docker compose -f deployments/docker-compose.yml up -d
+	$(COMPOSE) up -d
 
 ## docker-down: Stop Docker Compose services
 docker-down:
 	@echo "Stopping Docker services..."
-	docker compose -f deployments/docker-compose.yml down
+	$(COMPOSE) down
+
+## compose-up-full: Infra + API + MLC mock + nginx + Prometheus + Grafana
+compose-up-full:
+	@echo "Starting full Phase 5 stack..."
+	$(COMPOSE) --profile stack up -d --build --scale api=2
+
+## compose-scale-api: Scale API replicas (default 3)
+compose-scale-api:
+	@echo "Scaling API replicas..."
+	$(COMPOSE) --profile stack up -d --scale api=3
+
+## compose-down-full: Stop full stack including profile services
+compose-down-full:
+	$(COMPOSE) --profile stack down
 
 ## docker-build: Build Docker image
 docker-build:

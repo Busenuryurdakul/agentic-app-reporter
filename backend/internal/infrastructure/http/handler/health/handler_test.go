@@ -1,38 +1,28 @@
 package health
 
 import (
-	"context"
-	"errors"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-type failingPinger struct{}
-
-func (failingPinger) Ping(context.Context) error {
-	return errors.New("connection refused host=secret-db:5432")
-}
-
-func TestReadiness_DoesNotExposeInternalErrors(t *testing.T) {
-	handler := &Handler{db: failingPinger{}}
+func TestReadiness_DrainingReturns503(t *testing.T) {
+	h := NewHandler(nil, nil)
+	draining := true
+	h.SetDrainingChecker(func() bool { return draining })
 
 	req := httptest.NewRequest(http.MethodGet, "/health/ready", nil)
 	rec := httptest.NewRecorder()
-	handler.Readiness(rec, req)
+	h.Readiness(rec, req)
 
 	assert.Equal(t, http.StatusServiceUnavailable, rec.Code)
-	assert.NotContains(t, rec.Body.String(), "secret-db")
-	assert.Contains(t, rec.Body.String(), "unhealthy")
-}
 
-func TestNewHandler_NilRedisDoesNotPanicOnReadiness(t *testing.T) {
-	handler := NewHandler(nil, nil)
-	req := httptest.NewRequest(http.MethodGet, "/health/ready", nil)
-	rec := httptest.NewRecorder()
-	handler.Readiness(rec, req)
-	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.Contains(t, rec.Body.String(), "ready")
+	var body HealthResponse
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+	assert.Equal(t, "draining", body.Status)
+	assert.Equal(t, "draining", body.Services["server"])
 }

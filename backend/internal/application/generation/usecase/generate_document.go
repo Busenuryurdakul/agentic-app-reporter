@@ -14,6 +14,7 @@ import (
 	"github.com/masterfabric-go/masterfabric/internal/domain/llm"
 	domainErr "github.com/masterfabric-go/masterfabric/internal/shared/errors"
 	"github.com/masterfabric-go/masterfabric/internal/shared/middleware"
+	"github.com/masterfabric-go/masterfabric/internal/shared/telemetry"
 )
 
 // GenerateDocumentUseCase builds workspace context, calls LLMProvider, and persists the document.
@@ -22,7 +23,7 @@ type GenerateDocumentUseCase struct {
 	promptBuilder  *PromptBuilder
 	provider       llm.LLMProvider
 	docRepo        docRepo.DocumentRepository
-	gate           *GenerationGate
+	gate           GenerationLocker
 	llmEnabled     bool
 	logger         *slog.Logger
 }
@@ -33,7 +34,7 @@ func NewGenerateDocumentUseCase(
 	promptBuilder *PromptBuilder,
 	provider llm.LLMProvider,
 	docRepo docRepo.DocumentRepository,
-	gate *GenerationGate,
+	gate GenerationLocker,
 	llmEnabled bool,
 	logger *slog.Logger,
 ) *GenerateDocumentUseCase {
@@ -66,10 +67,14 @@ func (uc *GenerateDocumentUseCase) Execute(
 	if uc.provider == nil {
 		return nil, domainErr.New(domainErr.ErrServiceUnavailable, "LLM provider is not configured", nil)
 	}
-	if !uc.gate.TryBegin(workspaceID) {
+	acquired, err := uc.gate.TryBegin(ctx, workspaceID)
+	if err != nil {
+		return nil, domainErr.New(domainErr.ErrInternal, "failed to acquire generation lock", err)
+	}
+	if !acquired {
 		return nil, errGenerationInProgress()
 	}
-	defer uc.gate.End(workspaceID)
+	defer uc.gate.End(ctx, workspaceID)
 
 	wsCtx, err := uc.contextBuilder.Build(ctx, workspaceID, BuildContextOptions{
 		LanguageOverride: req.Language,
@@ -90,8 +95,15 @@ func (uc *GenerateDocumentUseCase) Execute(
 	}
 
 	start := time.Now()
+	telemetry.IncLLMInflight(ctx)
 	genResp, err := uc.provider.Generate(ctx, prompt)
 	duration := time.Since(start)
+	telemetry.DecLLMInflight(ctx)
+	status := "success"
+	if err != nil {
+		status = "error"
+	}
+	telemetry.RecordLLMGeneration(ctx, uc.provider.Name(), status, duration.Seconds())
 	// Log metadata only — never prompts, API keys, or full bodies.
 	uc.logger.Info("llm generate completed",
 		"provider", uc.provider.Name(),
@@ -117,6 +129,7 @@ func (uc *GenerateDocumentUseCase) Execute(
 		ProviderName:      genResp.Provider,
 		ModelName:         genResp.Model,
 		SourceFingerprint: wsCtx.Fingerprint(),
+		ApprovalStatus:    docModel.ApprovalDraft,
 		CreatedBy:         createdBy,
 	}
 	if doc.ProviderName == "" {
@@ -154,6 +167,7 @@ func (uc *GenerateDocumentUseCase) persistFailedDocument(
 		ProviderName:      uc.provider.Name(),
 		ErrorMessage:      safeMsg,
 		SourceFingerprint: wsCtx.Fingerprint(),
+		ApprovalStatus:    docModel.ApprovalDraft,
 		CreatedBy:         createdBy,
 	}
 	if err := uc.docRepo.Create(ctx, doc); err != nil {

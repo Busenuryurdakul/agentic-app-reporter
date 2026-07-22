@@ -102,6 +102,7 @@ func seedRoles(ctx context.Context, db *pgxpool.Pool) error {
 				"answer:write",
 				"document:read",
 				"document:write",
+				"document:approve",
 				"generation:run",
 				"generation:read",
 				"export:create",

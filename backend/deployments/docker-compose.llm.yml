@@ -1,0 +1,26 @@
+# Optional overlay: real MLC LLM server (GPU). Use with:
+#   docker compose -f deployments/docker-compose.yml -f deployments/docker-compose.llm.yml up -d
+#
+# Requires NVIDIA Container Toolkit for GPU. Without GPU, the default mock-llm
+# service in docker-compose.yml is used instead.
+services:
+  mlc-llm:
+    image: mlcai/mlc-llm:latest
+    container_name: masterfabric-mlc-llm
+    profiles:
+      - mlc-gpu
+    ports:
+      - "${MLC_HOST_BIND:-127.0.0.1}:8081:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8080/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

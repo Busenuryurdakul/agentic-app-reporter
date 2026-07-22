@@ -13,8 +13,9 @@ import (
 
 // Handler provides health check endpoints.
 type Handler struct {
-	db    dbPinger
-	redis redisPinger
+	db       dbPinger
+	redis    redisPinger
+	draining func() bool
 }
 
 type dbPinger interface {
@@ -38,6 +39,12 @@ func NewHandler(db *pgxpool.Pool, redisClient *redis.Client) *Handler {
 	return h
 }
 
+// SetDrainingChecker registers a callback that returns true when the server is draining
+// (rejecting new work during graceful shutdown).
+func (h *Handler) SetDrainingChecker(fn func() bool) {
+	h.draining = fn
+}
+
 // HealthResponse is the JSON structure for health checks.
 type HealthResponse struct {
 	Status   string            `json:"status"`
@@ -54,6 +61,16 @@ func (h *Handler) Readiness(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	services := make(map[string]string)
 	healthy := true
+
+	if h.draining != nil && h.draining() {
+		services["server"] = "draining"
+		healthy = false
+		response.JSON(w, http.StatusServiceUnavailable, HealthResponse{
+			Status:   "draining",
+			Services: services,
+		})
+		return
+	}
 
 	// Check Postgres
 	if h.db != nil {

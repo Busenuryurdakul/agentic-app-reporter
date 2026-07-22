@@ -128,12 +128,14 @@ type LogConfig struct {
 }
 
 // Load reads configuration from environment variables with sensible defaults.
+// Cloud platforms (e.g. Render) may provide DATABASE_URL, REDIS_URL, and PORT;
+// those override individual DB_*, REDIS_*, and SERVER_PORT settings when set.
 func Load() *Config {
-	return &Config{
+	cfg := &Config{
 		Environment: envOrDefault("APP_ENV", "development"),
 		Server: ServerConfig{
-			Host:        envOrDefault("SERVER_HOST", "0.0.0.0"),
-			Port:        envOrDefaultInt("SERVER_PORT", 8080),
+			Host: envOrDefault("SERVER_HOST", "0.0.0.0"),
+			Port: serverPortFromEnv(),
 			ReadTimeout: time.Duration(envOrDefaultInt("SERVER_READ_TIMEOUT_SECONDS", 15)) * time.Second,
 			// Default 90s so sync LLM generate (LLM_TIMEOUT_SECONDS≈60) is not cut by HTTP write timeout.
 			WriteTimeout:       time.Duration(envOrDefaultInt("SERVER_WRITE_TIMEOUT_SECONDS", 90)) * time.Second,
@@ -191,6 +193,12 @@ func Load() *Config {
 			Format: envOrDefault("LOG_FORMAT", "json"),
 		},
 	}
+
+	if err := applyCloudEnvOverrides(cfg); err != nil {
+		panic(fmt.Sprintf("invalid cloud environment configuration: %v", err))
+	}
+
+	return cfg
 }
 
 // ValidateLLMConfig validates LLM settings for the current environment.

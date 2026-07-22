@@ -484,6 +484,9 @@ make migrate        # Run migrations up
 make migrate-down   # Rollback last migration
 make docker-up      # Start Docker services (Postgres, Redis, Kafka, Kafka UI)
 make docker-down    # Stop Docker services
+make compose-up-full   # Phase 5: infra + MLC mock + API x2 + nginx + Prometheus + Grafana
+make compose-scale-api # Scale API replicas (profile stack)
+make compose-down-full # Stop full Phase 5 stack
 make clean          # Clean build artifacts
 ```
 

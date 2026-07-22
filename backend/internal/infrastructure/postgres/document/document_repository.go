@@ -28,6 +28,7 @@ func NewDocumentRepository(db *pgxpool.Pool) *DocumentRepository {
 const documentColumns = `
 	id, organization_id, workspace_id, title, document_type, language, status,
 	markdown_body, provider_name, model_name, error_message, source_fingerprint,
+	approval_status, approved_at, approved_by,
 	created_by, created_at, updated_at`
 
 func scanDocument(row pgx.Row) (*model.GeneratedDocument, error) {
@@ -45,6 +46,9 @@ func scanDocument(row pgx.Row) (*model.GeneratedDocument, error) {
 		&d.ModelName,
 		&d.ErrorMessage,
 		&d.SourceFingerprint,
+		&d.ApprovalStatus,
+		&d.ApprovedAt,
+		&d.ApprovedBy,
 		&d.CreatedBy,
 		&d.CreatedAt,
 		&d.UpdatedAt,
@@ -65,14 +69,18 @@ func (r *DocumentRepository) Create(ctx context.Context, doc *model.GeneratedDoc
 		doc.CreatedAt = now
 	}
 	doc.UpdatedAt = now
+	if doc.ApprovalStatus == "" {
+		doc.ApprovalStatus = model.ApprovalDraft
+	}
 
 	const q = `
 		INSERT INTO generated_documents (
 			id, organization_id, workspace_id, title, document_type, language, status,
 			markdown_body, provider_name, model_name, error_message, source_fingerprint,
+			approval_status, approved_at, approved_by,
 			created_by, created_at, updated_at
 		) VALUES (
-			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15
+			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18
 		)`
 	_, err := r.db.Exec(ctx, q,
 		doc.ID,
@@ -87,6 +95,9 @@ func (r *DocumentRepository) Create(ctx context.Context, doc *model.GeneratedDoc
 		doc.ModelName,
 		doc.ErrorMessage,
 		doc.SourceFingerprint,
+		doc.ApprovalStatus,
+		doc.ApprovedAt,
+		doc.ApprovedBy,
 		doc.CreatedBy,
 		doc.CreatedAt,
 		doc.UpdatedAt,
@@ -138,4 +149,91 @@ func (r *DocumentRepository) ListByWorkspace(ctx context.Context, workspaceID uu
 		out = append(out, doc)
 	}
 	return out, rows.Err()
+}
+
+// UpdateApproval persists approval_status / approved_at / approved_by.
+func (r *DocumentRepository) UpdateApproval(ctx context.Context, doc *model.GeneratedDocument) error {
+	doc.UpdatedAt = time.Now().UTC()
+	const q = `
+		UPDATE generated_documents
+		SET approval_status = $2,
+		    approved_at = $3,
+		    approved_by = $4,
+		    updated_at = $5
+		WHERE id = $1`
+	tag, err := r.db.Exec(ctx, q, doc.ID, doc.ApprovalStatus, doc.ApprovedAt, doc.ApprovedBy, doc.UpdatedAt)
+	if err != nil {
+		return domainErr.New(domainErr.ErrInternal, "failed to update document approval", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return domainErr.New(domainErr.ErrNotFound, "generated document not found", nil)
+	}
+	return nil
+}
+
+// CountByWorkspace returns status totals and last success/failure timestamps.
+func (r *DocumentRepository) CountByWorkspace(ctx context.Context, workspaceID uuid.UUID) (*repository.WorkspaceDocumentStats, error) {
+	const q = `
+		SELECT status, COUNT(*), MAX(created_at)
+		FROM generated_documents
+		WHERE workspace_id = $1
+		GROUP BY status`
+	rows, err := r.db.Query(ctx, q, workspaceID)
+	if err != nil {
+		return nil, domainErr.New(domainErr.ErrInternal, "failed to count generated documents", err)
+	}
+	defer rows.Close()
+
+	stats := &repository.WorkspaceDocumentStats{}
+	for rows.Next() {
+		var status string
+		var count int
+		var lastAt time.Time
+		if err := rows.Scan(&status, &count, &lastAt); err != nil {
+			return nil, domainErr.New(domainErr.ErrInternal, "failed to scan document status counts", err)
+		}
+		ts := lastAt.UTC()
+		switch status {
+		case model.StatusSucceeded:
+			stats.Succeeded = count
+			stats.LastSuccessAt = &ts
+		case model.StatusFailed:
+			stats.Failed = count
+			stats.LastFailureAt = &ts
+		case model.StatusPending:
+			stats.Pending = count
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, domainErr.New(domainErr.ErrInternal, "failed to iterate document status counts", err)
+	}
+	return stats, nil
+}
+
+// CountProvidersByWorkspace aggregates documents by provider_name.
+func (r *DocumentRepository) CountProvidersByWorkspace(ctx context.Context, workspaceID uuid.UUID) ([]repository.ProviderCount, error) {
+	const q = `
+		SELECT COALESCE(provider_name, ''), COUNT(*)
+		FROM generated_documents
+		WHERE workspace_id = $1
+		GROUP BY provider_name
+		ORDER BY COUNT(*) DESC, provider_name ASC`
+	rows, err := r.db.Query(ctx, q, workspaceID)
+	if err != nil {
+		return nil, domainErr.New(domainErr.ErrInternal, "failed to count document providers", err)
+	}
+	defer rows.Close()
+
+	out := make([]repository.ProviderCount, 0)
+	for rows.Next() {
+		var pc repository.ProviderCount
+		if err := rows.Scan(&pc.Name, &pc.Count); err != nil {
+			return nil, domainErr.New(domainErr.ErrInternal, "failed to scan document provider counts", err)
+		}
+		out = append(out, pc)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, domainErr.New(domainErr.ErrInternal, "failed to iterate document provider counts", err)
+	}
+	return out, nil
 }

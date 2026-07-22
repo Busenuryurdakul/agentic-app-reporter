@@ -22,6 +22,7 @@ type Handler struct {
 	regenerateDocumentUC *usecase.RegenerateDocumentUseCase
 	listDocumentsUC      *usecase.ListDocumentsUseCase
 	getDocumentUC        *usecase.GetDocumentUseCase
+	approveDocumentUC    *usecase.ApproveDocumentUseCase
 }
 
 // NewHandler creates a generation Handler. Document use-cases may be nil when DB is unavailable.
@@ -31,6 +32,7 @@ func NewHandler(
 	regenerateDocumentUC *usecase.RegenerateDocumentUseCase,
 	listDocumentsUC *usecase.ListDocumentsUseCase,
 	getDocumentUC *usecase.GetDocumentUseCase,
+	approveDocumentUC *usecase.ApproveDocumentUseCase,
 ) *Handler {
 	return &Handler{
 		providerHealthUC:     providerHealthUC,
@@ -38,6 +40,7 @@ func NewHandler(
 		regenerateDocumentUC: regenerateDocumentUC,
 		listDocumentsUC:      listDocumentsUC,
 		getDocumentUC:        getDocumentUC,
+		approveDocumentUC:    approveDocumentUC,
 	}
 }
 
@@ -150,6 +153,31 @@ func (h *Handler) GetDocument(w http.ResponseWriter, r *http.Request) {
 	}
 
 	doc, err := h.getDocumentUC.Execute(r.Context(), workspaceID, documentID)
+	if err != nil {
+		response.Error(w, err)
+		return
+	}
+	response.JSON(w, http.StatusOK, doc)
+}
+
+// ApproveDocument handles POST /api/v1/workspaces/{workspaceId}/documents/{documentId}/approve.
+func (h *Handler) ApproveDocument(w http.ResponseWriter, r *http.Request) {
+	if h.approveDocumentUC == nil {
+		response.JSON(w, http.StatusServiceUnavailable, map[string]string{"error": "document approval unavailable"})
+		return
+	}
+	workspaceID, err := uuid.Parse(chi.URLParam(r, "workspaceId"))
+	if err != nil {
+		response.JSON(w, http.StatusBadRequest, map[string]string{"error": "invalid workspace id"})
+		return
+	}
+	documentID, err := uuid.Parse(chi.URLParam(r, "documentId"))
+	if err != nil {
+		response.JSON(w, http.StatusBadRequest, map[string]string{"error": "invalid document id"})
+		return
+	}
+
+	doc, err := h.approveDocumentUC.Execute(r.Context(), workspaceID, documentID)
 	if err != nil {
 		response.Error(w, err)
 		return

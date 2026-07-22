@@ -131,14 +131,16 @@ All routes require JWT + `X-Organization-ID`. Workspace must belong to that org.
 | GET | `/api/v1/workspaces/{workspaceId}/documents` | `document:read` |
 | GET | `/api/v1/workspaces/{workspaceId}/documents/{documentId}` | `document:read` |
 | POST | `/api/v1/workspaces/{workspaceId}/documents/{documentId}/regenerate` | `generation:run` |
+| POST | `/api/v1/workspaces/{workspaceId}/documents/{documentId}/approve` | `document:approve` |
 
 Generate body (optional): `{ "title": "...", "language": "tr"|"en" }`.  
 Language defaults to workspace `preferred_document_language`.  
 Missing required questionnaire answers are a soft gate (listed in context; generate still runs).
 
-Regenerate creates a **new** document row; the source document is kept.
+Regenerate creates a **new** document row; the source document is kept.  
+Approve is allowed only when `status=succeeded`; already-approved docs are idempotent.
 
-Migration: `00016_generated_documents.sql`.
+Migrations: `00016_generated_documents.sql`, `00017_document_approval.sql`.
 
 ### Smoke
 
@@ -146,6 +148,7 @@ With the API running (`LLM_PROVIDER=mock`):
 
 ```bash
 node ./scripts/smoke_phase3_documents.mjs
+node ./scripts/smoke_phase4_release.mjs
 ```
 
 ### Soft incompleteness
@@ -153,8 +156,103 @@ node ./scripts/smoke_phase3_documents.mjs
 `WorkspaceContextBuilder` reports `MissingRequired` for visible required questions without
 answers. Generation does **not** hard-fail with 422 for incomplete questionnaires in Phase 3.
 
+## Phase 4 — Observe (scoring + monitoring + export)
+
+### Architecture rules
+
+1. Phase 3 rules still apply (LLMProvider port, server-side context, no raw prompt store).
+2. Readiness and document quality are **deterministic** — no LLM in scoring.
+3. Frontend never computes readiness/quality; it only displays API results.
+4. Observe/readiness use existing `document:read` (no new `observe:read` permission).
+5. Export uses `export:create`; approve uses `document:approve`.
+
+### Readiness score (0–100)
+
+```
+round(0.4 * profile + 0.4 * questionnaire + 0.2 * documents)
+```
+
+- **profile** — existing Completeness overall
+- **questionnaire** — required + active + visible answered ratio (`total==0` → 100)
+- **documents** — 100 if any `succeeded` document exists, else 0
+
+Computed on each request (no snapshot table in MVP).
+
+### Document quality heuristics
+
+| Signal | Rule | Weight |
+|--------|------|--------|
+| `has_heading` | ATX heading at line start (`#`…`######`) | 40 |
+| `min_length_ok` | ≥ 200 Unicode runes | 40 |
+| `language_declared` | `tr` / `en` | 20 |
+
+Exposed on document get/list and observe `recent[].quality`.
+
+### Observe + export API
+
+| Method | Path | Permission |
+|--------|------|------------|
+| GET | `/api/v1/workspaces/{workspaceId}/readiness` | `document:read` |
+| GET | `/api/v1/workspaces/{workspaceId}/observe/summary` | `document:read` |
+| POST | `/api/v1/workspaces/{workspaceId}/exports` | `export:create` |
+
+Export body (optional): `{ "document_ids": ["..."], "format": "markdown_zip" }`.
+
+Default selection: `approved` + `succeeded` documents; if none, `succeeded` fallback.  
+1 document → `text/markdown` with YAML front-matter; 2+ → `application/zip`. Max 20 docs.  
+No raw prompts in the package.
+
+### Frontend
+
+- `/o/{orgId}/w/{workspaceId}/observe` — readiness, generation summary, quality badges, export
+- Document viewer — approve + export actions
+- UI copy: Turkish (`tr.observe.*`, `tr.generate.approve*`, export strings)
+
 ## Do not
 
 - Copy this backend into the frontend repository
 - Couple domain / application code to Gemma or Cursor concretions
 - Accept client-built LLM context (profile + answers) on generate endpoints
+- Compute readiness/quality scores in the frontend
+- Involve LLM in readiness or document quality heuristics
+
+## Phase 5 — MLC backend, reload guard, Grafana, Compose scaling
+
+### Architecture rules
+
+1. **No browser LLM** — frontend calls REST only; no `@mlc-ai` / WebGPU runtime.
+2. **MLC via backend** — OpenAI-compatible HTTP (`LLM_PROVIDER=gemma`, `LLM_BASE_URL`).
+   Compose dev uses `deployments/mock-llm` (MLC-compatible REST). GPU overlay:
+   `docker compose -f deployments/docker-compose.yml -f deployments/docker-compose.llm.yml --profile mlc-gpu`.
+3. **Distributed generation lock** — Redis `SET NX` when Redis is available; in-process
+   fallback for single-instance dev without Redis.
+4. **Graceful shutdown** — SIGTERM sets readiness to `draining`, waits for in-flight LLM
+   (up to `LLM_TIMEOUT_SECONDS+30`), then stops HTTP server. API containers use
+   `stop_grace_period: 120s`.
+5. **Observability** — `/metrics` exposes `llm_generation_*` instruments; Prometheus +
+   Grafana in Compose `--profile stack`.
+
+### Compose full stack
+
+```bash
+make docker-up              # postgres + redis + kafka (infra only)
+make migrate && go run ./scripts
+make compose-up-full        # + mlc-llm mock + api x2 + nginx + prometheus + grafana
+make compose-scale-api      # scale api to 3 replicas
+node ./scripts/smoke_phase5_compose.mjs
+```
+
+| Service | URL |
+|---------|-----|
+| API (nginx LB) | http://localhost:8080 |
+| MLC mock | http://localhost:8081 |
+| Grafana | http://localhost:3001 (admin/admin) |
+| Prometheus | http://localhost:9090 |
+
+Frontend: `NEXT_PUBLIC_API_BASE_URL=http://localhost:8080` (nginx).
+
+### Frontend reload guard
+
+While generate/regenerate is pending, the Üret layout registers LLM-active state:
+`beforeunload` warning, health poll paused. See `frontend/src/features/generate/llm-active-context.tsx`.
+

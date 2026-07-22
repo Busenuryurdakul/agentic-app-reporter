@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -19,6 +20,8 @@ import (
 	auditHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/audit"
 	generationHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/generation"
 	iamHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/iam"
+	exportHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/export"
+	observeHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/observe"
 	projectprofileHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/projectprofile"
 	questionnaireHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/questionnaire"
 	realtimeHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/realtime"
@@ -39,6 +42,8 @@ import (
 	apimgmtUC "github.com/masterfabric-go/masterfabric/internal/application/apimanagement/usecase"
 	generationUC "github.com/masterfabric-go/masterfabric/internal/application/generation/usecase"
 	iamUC "github.com/masterfabric-go/masterfabric/internal/application/iam/usecase"
+	exportUC "github.com/masterfabric-go/masterfabric/internal/application/export/usecase"
+	observeUC "github.com/masterfabric-go/masterfabric/internal/application/observe/usecase"
 	projectprofileUC "github.com/masterfabric-go/masterfabric/internal/application/projectprofile/usecase"
 	questionnaireUC "github.com/masterfabric-go/masterfabric/internal/application/questionnaire/usecase"
 	realtimeUC "github.com/masterfabric-go/masterfabric/internal/application/realtime/usecase"
@@ -119,7 +124,7 @@ func run() error {
 	defer func() { _ = eventBus.Close() }()
 
 	// Build dependencies
-	deps, err := buildDependencies(log, cfg, db, redisClient, eventBus)
+	deps, generationLocker, err := buildDependencies(log, cfg, db, redisClient, eventBus)
 	if err != nil {
 		return err
 	}
@@ -128,6 +133,9 @@ func run() error {
 	if err := router.ValidateSecureAuthWiring(deps, cfg.IsProduction()); err != nil {
 		return err
 	}
+
+	var draining atomic.Bool
+	deps.Draining = func() bool { return draining.Load() }
 
 	// Build router
 	r := router.New(deps)
@@ -159,6 +167,25 @@ func run() error {
 		}
 	case sig := <-shutdown:
 		log.Info("shutdown signal received", "signal", sig)
+		draining.Store(true)
+
+		waitBudget := time.Duration(cfg.LLM.TimeoutSeconds+30) * time.Second
+		if waitBudget < 30*time.Second {
+			waitBudget = 30 * time.Second
+		}
+		deadline := time.Now().Add(waitBudget)
+		for generationLocker != nil && generationLocker.HasInflight() && time.Now().Before(deadline) {
+			log.Info("waiting for in-flight LLM generations",
+				"count", generationLocker.InflightCount(),
+			)
+			time.Sleep(500 * time.Millisecond)
+		}
+		if generationLocker != nil && generationLocker.HasInflight() {
+			log.Warn("shutdown proceeding with in-flight generations still active",
+				"count", generationLocker.InflightCount(),
+			)
+		}
+
 		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer shutdownCancel()
 
@@ -215,7 +242,7 @@ func buildDependencies(
 	db *pgxpool.Pool,
 	redisClient *redis.Client,
 	eventBus events.EventBus,
-) (router.Dependencies, error) {
+) (router.Dependencies, generationUC.GenerationLocker, error) {
 	deps := router.Dependencies{
 		Logger:             log,
 		DB:                 db,
@@ -226,16 +253,16 @@ func buildDependencies(
 
 	// LLM provider is independent of the database (mock / gemma via LLMProvider).
 	if err := config.ValidateLLMConfig(cfg.LLM, cfg.IsProduction()); err != nil {
-		return deps, fmt.Errorf("llm config: %w", err)
+		return deps, nil, fmt.Errorf("llm config: %w", err)
 	}
 	llmProvider, err := infraLLM.NewProvider(cfg.LLM)
 	if err != nil {
-		return deps, fmt.Errorf("llm provider: %w", err)
+		return deps, nil, fmt.Errorf("llm provider: %w", err)
 	}
 	deps.LLMProvider = llmProvider
 	providerHealthUC := generationUC.NewProviderHealthUseCase(llmProvider, cfg.LLM.Enabled)
 	// Document use-cases are wired after DB repos are available; health works without DB.
-	deps.GenerationHandler = generationHandler.NewHandler(providerHealthUC, nil, nil, nil, nil)
+	deps.GenerationHandler = generationHandler.NewHandler(providerHealthUC, nil, nil, nil, nil, nil)
 	log.Info("llm provider configured",
 		"provider", llmProvider.Name(),
 		"enabled", cfg.LLM.Enabled,
@@ -243,7 +270,7 @@ func buildDependencies(
 
 	if db == nil {
 		log.Warn("database not available, API endpoints will not work")
-		return deps, nil
+		return deps, nil, nil
 	}
 
 	// --- Repositories ---
@@ -309,13 +336,22 @@ func buildDependencies(
 		workspaceRepo, profileRepo, questionnaireSetRepo, questionRepo, answerRepo,
 	)
 	promptBuilder := generationUC.NewPromptBuilder()
-	generationGate := generationUC.NewGenerationGate()
+	lockTTL := time.Duration(cfg.LLM.TimeoutSeconds+30) * time.Second
+	generationLocker := generationUC.NewGenerationLocker(redisClient, lockTTL)
 	generateDocumentUC := generationUC.NewGenerateDocumentUseCase(
-		contextBuilder, promptBuilder, llmProvider, documentRepo, generationGate, cfg.LLM.Enabled, log,
+		contextBuilder, promptBuilder, llmProvider, documentRepo, generationLocker, cfg.LLM.Enabled, log,
 	)
 	regenerateDocumentUC := generationUC.NewRegenerateDocumentUseCase(generateDocumentUC, documentRepo, workspaceRepo)
 	listDocumentsUC := generationUC.NewListDocumentsUseCase(documentRepo, workspaceRepo)
 	getDocumentUC := generationUC.NewGetDocumentUseCase(documentRepo, workspaceRepo)
+	approveDocumentUC := generationUC.NewApproveDocumentUseCase(documentRepo, workspaceRepo)
+
+	// Phase 4 S1: readiness + observe summary (deterministic; reuses completeness + missing-info)
+	readinessUC := observeUC.NewReadinessUseCase(completenessUC, missingInformationUC, documentRepo, workspaceRepo)
+	observeSummaryUC := observeUC.NewObserveSummaryUseCase(documentRepo, workspaceRepo)
+
+	// Phase 4 S5: sync Markdown / ZIP export (approved → succeeded fallback)
+	exportPackageUC := exportUC.NewExportPackageUseCase(documentRepo, workspaceRepo)
 
 	// --- Register sample Kafka consumers ---
 	// Log all IAM events
@@ -367,7 +403,10 @@ func buildDependencies(
 		regenerateDocumentUC,
 		listDocumentsUC,
 		getDocumentUC,
+		approveDocumentUC,
 	)
+	deps.ObserveHandler = observeHandler.NewHandler(readinessUC, observeSummaryUC)
+	deps.ExportHandler = exportHandler.NewHandler(exportPackageUC)
 
 	// --- WebSocket real-time hub ---
 	wsHub := infraWS.NewHub(log, cfg.WebSocket.MaxConnections)
@@ -430,5 +469,5 @@ func buildDependencies(
 		piiMasker,       // PII masking interceptor
 	)
 
-	return deps, nil
+	return deps, generationLocker, nil
 }

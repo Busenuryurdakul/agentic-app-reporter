@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/masterfabric-go/masterfabric/internal/application/generation/dto"
 	docModel "github.com/masterfabric-go/masterfabric/internal/domain/document/model"
+	docRepo "github.com/masterfabric-go/masterfabric/internal/domain/document/repository"
 	"github.com/masterfabric-go/masterfabric/internal/domain/llm"
 	profileModel "github.com/masterfabric-go/masterfabric/internal/domain/projectprofile/model"
 	qmodel "github.com/masterfabric-go/masterfabric/internal/domain/questionnaire/model"
@@ -36,6 +37,23 @@ func (m *mockDocumentRepo) ListByWorkspace(ctx context.Context, workspaceID uuid
 		return nil, args.Error(1)
 	}
 	return args.Get(0).([]*docModel.GeneratedDocument), args.Error(1)
+}
+func (m *mockDocumentRepo) CountByWorkspace(ctx context.Context, workspaceID uuid.UUID) (*docRepo.WorkspaceDocumentStats, error) {
+	args := m.Called(ctx, workspaceID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*docRepo.WorkspaceDocumentStats), args.Error(1)
+}
+func (m *mockDocumentRepo) CountProvidersByWorkspace(ctx context.Context, workspaceID uuid.UUID) ([]docRepo.ProviderCount, error) {
+	args := m.Called(ctx, workspaceID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]docRepo.ProviderCount), args.Error(1)
+}
+func (m *mockDocumentRepo) UpdateApproval(ctx context.Context, doc *docModel.GeneratedDocument) error {
+	return m.Called(ctx, doc).Error(0)
 }
 
 type stubLLMProvider struct {
@@ -171,7 +189,9 @@ func TestGenerateDocument_DisabledReturns503(t *testing.T) {
 func TestGenerateDocument_RejectsOverlappingRequests(t *testing.T) {
 	orgID, wsID, wsRepo, profileRepo, setRepo, questionRepo, answerRepo, docRepo := setupGenerateFixture(t)
 	gate := NewGenerationGate()
-	require.True(t, gate.TryBegin(wsID))
+	acquired, err := gate.TryBegin(orgContext(orgID), wsID)
+	require.NoError(t, err)
+	require.True(t, acquired)
 
 	uc := NewGenerateDocumentUseCase(
 		NewWorkspaceContextBuilder(wsRepo, profileRepo, setRepo, questionRepo, answerRepo),
@@ -182,10 +202,10 @@ func TestGenerateDocument_RejectsOverlappingRequests(t *testing.T) {
 		true,
 		nil,
 	)
-	_, err := uc.Execute(orgContext(orgID), wsID, dto.GenerateDocumentRequest{})
+	_, err = uc.Execute(orgContext(orgID), wsID, dto.GenerateDocumentRequest{})
 	require.Error(t, err)
 	assert.True(t, errors.Is(err, domainErr.ErrConflict))
-	gate.End(wsID)
+	gate.End(orgContext(orgID), wsID)
 }
 
 func TestGenerateDocument_ProviderFailureMapsTo502AndPersistsFailedRow(t *testing.T) {
@@ -243,6 +263,10 @@ func TestListDocuments_OmitsBodiesInSummary(t *testing.T) {
 	assert.Equal(t, "A", out.Documents[0].Title)
 	// Summary type has no MarkdownBody field — ensure list DTO path is used.
 	assert.Equal(t, "mock", out.Documents[0].ProviderName)
+	// Quality is computed server-side from body without exposing markdown_body.
+	assert.True(t, out.Documents[0].Quality.HasHeading)
+	assert.False(t, out.Documents[0].Quality.MinLengthOK)
+	assert.Equal(t, 40, out.Documents[0].Quality.QualityScore)
 }
 
 func TestGetDocument_ForeignWorkspaceForbidden(t *testing.T) {
