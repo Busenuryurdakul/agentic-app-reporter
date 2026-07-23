@@ -58,4 +58,19 @@ export const authStorage = {
     }
     window.localStorage.setItem(ORG_KEY, JSON.stringify(org));
   },
+
+  /** Align tenant header with the org id from the current route (before data fetches). */
+  ensureOrganizationId(orgId: string): void {
+    if (!canUseStorage()) return;
+    const current = this.getOrganization();
+    if (current?.id === orgId) return;
+
+    this.setOrganization({
+      id: orgId,
+      name: "",
+      slug: "",
+      status: "active",
+      created_at: "",
+    });
+  },
 };

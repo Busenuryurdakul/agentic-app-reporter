@@ -91,6 +91,13 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
 
     if (response.status === 401 && auth) {
       authStorage.clearSession();
+      authStorage.setOrganization(null);
+      publishSessionFromStorage();
+    }
+
+    if (response.status === 403 && auth) {
+      // Stale/wrong org in localStorage causes RBAC 403 on every tenant-scoped route.
+      authStorage.setOrganization(null);
       publishSessionFromStorage();
     }
 
@@ -170,6 +177,12 @@ export async function apiDownload(
 
     if (response.status === 401 && auth) {
       authStorage.clearSession();
+      authStorage.setOrganization(null);
+      publishSessionFromStorage();
+    }
+
+    if (response.status === 403 && auth) {
+      authStorage.setOrganization(null);
       publishSessionFromStorage();
     }
 

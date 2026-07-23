@@ -26,6 +26,7 @@ export const authApi = {
   me(token?: string) {
     return apiRequest<UserInfo>("/api/v1/me", {
       token,
+      organizationId: null,
     });
   },
 };

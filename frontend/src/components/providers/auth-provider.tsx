@@ -114,6 +114,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     authStorage.clearSession();
     authStorage.setOrganization(null);
     publishSessionFromStorage();
+    if (typeof window !== "undefined") {
+      window.location.assign("/login");
+    }
   }, []);
 
   const setOrganization = useCallback((org: Organization | null) => {

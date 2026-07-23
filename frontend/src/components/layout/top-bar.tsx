@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Building2, ChevronDown, LogOut, Menu, UserRound } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -38,7 +37,6 @@ export function TopBar({
   title,
 }: TopBarProps) {
   const { user, organization, logout } = useAuth();
-  const router = useRouter();
   const [open, setOpen] = useState(false);
 
   return (
@@ -113,12 +111,7 @@ export function TopBar({
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={() => {
-              logout();
-              router.replace("/login");
-            }}
-          >
+          <DropdownMenuItem onClick={() => logout()}>
             <LogOut className="size-4" />
             {tr.auth.signOut}
           </DropdownMenuItem>

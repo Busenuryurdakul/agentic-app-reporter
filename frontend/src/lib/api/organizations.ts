@@ -9,6 +9,7 @@ export const organizationsApi = {
   list(page = 1, perPage = 50) {
     return apiRequest<PaginatedResult<Organization>>(
       `/api/v1/organizations?page=${page}&per_page=${perPage}`,
+      { organizationId: null },
     );
   },
 
@@ -22,6 +23,7 @@ export const organizationsApi = {
     return apiRequest<Organization>("/api/v1/organizations", {
       method: "POST",
       body: payload,
+      organizationId: null,
     });
   },
 };
