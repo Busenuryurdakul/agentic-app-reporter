@@ -248,8 +248,31 @@ node ./scripts/smoke_phase5_compose.mjs
 | MLC mock | http://localhost:8081 |
 | Grafana | http://localhost:3001 (admin/admin) |
 | Prometheus | http://localhost:9090 |
+| Loki | http://localhost:3100 |
 
 Frontend: `NEXT_PUBLIC_API_BASE_URL=http://localhost:8080` (nginx).
+
+**Logging:** Promtail ships `api`, `nginx`, and `mlc-llm` container logs to Loki.
+View in Grafana → Explore → Loki datasource (`{service="api"}`).
+
+### Kubernetes (HPA + Ingress)
+
+Separate containers: API, nginx gateway, Prometheus, Grafana, Loki, Promtail.
+API pods scale horizontally via HPA (2–10 replicas, CPU/memory targets).
+Graceful shutdown: `terminationGracePeriodSeconds: 120` + readiness `draining`.
+
+```bash
+make k8s-apply          # build image + kubectl apply -k deployments/kubernetes
+make k8s-delete         # tear down
+```
+
+Requires: kubectl cluster, [nginx ingress controller](https://kubernetes.github.io/ingress-nginx/),
+and postgres/redis services named `postgres` / `redis` in the `masterfabric` namespace
+(or adjust env in `deployments/kubernetes/deployment-api.yaml`).
+
+Hosts (add to `/etc/hosts` or equivalent):
+- `api.masterfabric.local` → nginx gateway
+- `grafana.masterfabric.local` → Grafana dashboards + logs
 
 ### Frontend reload guard
 

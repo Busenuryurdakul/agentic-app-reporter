@@ -131,6 +131,8 @@ type LogConfig struct {
 // Cloud platforms (e.g. Render) may provide DATABASE_URL, REDIS_URL, and PORT;
 // those override individual DB_*, REDIS_*, and SERVER_PORT settings when set.
 func Load() *Config {
+	loadDotEnvFiles()
+
 	cfg := &Config{
 		Environment: envOrDefault("APP_ENV", "development"),
 		Server: ServerConfig{

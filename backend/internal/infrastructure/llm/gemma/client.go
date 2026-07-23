@@ -101,11 +101,7 @@ func (c *Client) Generate(ctx context.Context, req llm.GenerateRequest) (llm.Gen
 		return llm.GenerateResponse{}, err
 	}
 
-	messages := make([]chatMessage, 0, 2)
-	if strings.TrimSpace(req.SystemPrompt) != "" {
-		messages = append(messages, chatMessage{Role: "system", Content: req.SystemPrompt})
-	}
-	messages = append(messages, chatMessage{Role: "user", Content: req.UserPrompt})
+	messages := buildChatMessages(req)
 
 	body := chatRequest{
 		Model:     c.model,
@@ -226,6 +222,16 @@ func (c *Client) Health(ctx context.Context) (llm.ProviderHealth, error) {
 		Healthy:  false,
 		Message:  fmt.Sprintf("gemma provider unhealthy (HTTP %d)", resp.StatusCode),
 	}, nil
+}
+
+func buildChatMessages(req llm.GenerateRequest) []chatMessage {
+	user := strings.TrimSpace(req.UserPrompt)
+	system := strings.TrimSpace(req.SystemPrompt)
+	if system != "" {
+		// Hugging Face Inference router and some OpenAI-compatible hosts reject role=system.
+		user = system + "\n\n" + user
+	}
+	return []chatMessage{{Role: "user", Content: user}}
 }
 
 func (c *Client) setAuth(req *http.Request) {

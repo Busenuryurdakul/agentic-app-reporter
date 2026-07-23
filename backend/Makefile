@@ -1,4 +1,4 @@
-.PHONY: build run test lint migrate migrate-down docker-up docker-down compose-up-full compose-scale-api clean help
+.PHONY: build run test lint migrate migrate-down docker-up docker-down compose-up-full compose-scale-api k8s-apply k8s-delete clean help
 
 APP_NAME := masterfabric
 BUILD_DIR := bin
@@ -7,6 +7,7 @@ MIGRATION_DIR := internal/infrastructure/postgres/migrations
 DB_DSN ?= postgres://masterfabric:masterfabric@localhost:5432/masterfabric?sslmode=disable
 COMPOSE_FILE := deployments/docker-compose.yml
 COMPOSE := docker compose -f $(COMPOSE_FILE)
+K8S_DIR := deployments/kubernetes
 
 ## help: Show this help message
 help:
@@ -80,6 +81,16 @@ compose-scale-api:
 ## compose-down-full: Stop full stack including profile services
 compose-down-full:
 	$(COMPOSE) --profile stack down
+
+## k8s-apply: Deploy Kubernetes stack (requires kubectl + nginx ingress controller)
+k8s-apply:
+	@echo "Building image and applying K8s manifests..."
+	docker build -f deployments/Dockerfile -t $(APP_NAME):latest .
+	kubectl apply -k $(K8S_DIR)
+
+## k8s-delete: Remove Kubernetes stack
+k8s-delete:
+	kubectl delete -k $(K8S_DIR) --ignore-not-found
 
 ## docker-build: Build Docker image
 docker-build:

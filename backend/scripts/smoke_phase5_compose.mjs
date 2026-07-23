@@ -51,6 +51,10 @@ try {
 
   await get(`${GRAFANA_BASE}/api/health`);
   pass("grafana health");
+
+  const lokiBase = process.env.LOKI_BASE || "http://127.0.0.1:3100";
+  await get(`${lokiBase}/ready`);
+  pass("loki ready");
 } catch (err) {
   fail("smoke", err.message);
 }

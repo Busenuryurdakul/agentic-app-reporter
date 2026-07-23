@@ -78,7 +78,7 @@ metadata (`provider_name`, `model_name`, `source_fingerprint`, status, approval 
 
 - LLM inference stays **backend-only**; frontend has no browser MLC/WebGPU runtime.
 - Compose stack (`--profile stack`): mock MLC REST server, API replicas, nginx LB, Redis
-  distributed generation lock, Prometheus + Grafana dashboards.
+  distributed generation lock, Prometheus + Grafana dashboards, Loki + Promtail logging.
 - Custom metrics: `llm_generation_duration_seconds`, `llm_generation_total`, `llm_inflight`.
 - Graceful shutdown waits for in-flight generations; readiness returns `draining` during SIGTERM.
 - Frontend `LlmActiveGuard` blocks page unload while generation/regeneration is pending.
@@ -101,5 +101,5 @@ metadata (`provider_name`, `model_name`, `source_fingerprint`, status, approval 
 | 2 Profile + Questionnaire | Done (API + Turkish UI) |
 | 3 Generation / LLMProvider | Done (mock + Gemma, documents API, Üret UI) |
 | 4 Observe / scoring / export | Done (readiness, quality, approve, export, Gözlemle UI) |
-| 5 MLC backend / Grafana / Compose scale | Done (Redis lock, mock MLC, nginx, reload guard) |
+| 5 MLC backend / Grafana / Compose scale | Done (Redis lock, mock MLC, nginx, Loki logs, K8s HPA) |
 | 6+ PDF / score history / LLM critique | Not started |

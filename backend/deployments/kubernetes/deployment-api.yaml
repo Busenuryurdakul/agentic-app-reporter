@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: masterfabric-api
+  namespace: masterfabric
+  labels:
+    app.kubernetes.io/name: masterfabric-api
+    app.kubernetes.io/component: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: masterfabric-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: masterfabric-api
+        app.kubernetes.io/component: backend
+    spec:
+      terminationGracePeriodSeconds: 120
+      containers:
+        - name: api
+          image: masterfabric:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: APP_ENV
+              value: production
+            - name: SERVER_HOST
+              value: 0.0.0.0
+            - name: SERVER_PORT
+              value: "8080"
+            - name: SERVER_WRITE_TIMEOUT_SECONDS
+              value: "130"
+            - name: DB_HOST
+              value: postgres
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USER
+              value: masterfabric
+            - name: DB_NAME
+              value: masterfabric
+            - name: DB_SSLMODE
+              value: disable
+            - name: REDIS_HOST
+              value: redis
+            - name: REDIS_PORT
+              value: "6379"
+            - name: KAFKA_ENABLED
+              value: "false"
+            - name: LLM_ENABLED
+              value: "true"
+            - name: LLM_PROVIDER
+              value: gemma
+            - name: LLM_BASE_URL
+              value: http://mlc-llm:8080/v1
+            - name: LLM_MODEL
+              value: mock-mlc-model
+            - name: LLM_TIMEOUT_SECONDS
+              value: "120"
+            - name: LLM_MAX_RETRIES
+              value: "2"
+            - name: LOG_FORMAT
+              value: json
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: masterfabric-api-secrets
+                  key: JWT_SECRET
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: masterfabric-api-secrets
+                  key: DB_PASSWORD
+            - name: LLM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: masterfabric-api-secrets
+                  key: LLM_API_KEY
+            - name: DATABASE_URL
+              value: postgres://masterfabric:$(DB_PASSWORD)@postgres:5432/masterfabric?sslmode=disable
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 5"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
