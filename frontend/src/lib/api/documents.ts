@@ -6,6 +6,13 @@ export type GenerateDocumentRequest = {
   language?: string;
 };
 
+export type DocumentQuality = {
+  has_heading: boolean;
+  min_length_ok: boolean;
+  language_declared: boolean;
+  quality_score: number;
+};
+
 export type DocumentSummary = {
   id: string;
   workspace_id: string;
@@ -13,10 +20,12 @@ export type DocumentSummary = {
   document_type: string;
   language: string;
   status: string;
+  approval_status?: string;
   provider_name: string;
   model_name: string;
   created_at: string;
   updated_at: string;
+  quality?: DocumentQuality;
 };
 
 export type DocumentInfo = DocumentSummary & {
@@ -24,6 +33,8 @@ export type DocumentInfo = DocumentSummary & {
   markdown_body: string;
   error_message?: string;
   source_fingerprint?: string;
+  approved_at?: string | null;
+  approved_by?: string | null;
   created_by?: string | null;
 };
 
@@ -75,6 +86,16 @@ export const documentsApi = {
   regenerate(workspaceId: string, documentId: string) {
     return apiRequest<DocumentInfo>(
       `/api/v1/workspaces/${workspaceId}/documents/${documentId}/regenerate`,
+      {
+        method: "POST",
+        ...workspaceOpts(workspaceId),
+      },
+    );
+  },
+
+  approve(workspaceId: string, documentId: string) {
+    return apiRequest<DocumentInfo>(
+      `/api/v1/workspaces/${workspaceId}/documents/${documentId}/approve`,
       {
         method: "POST",
         ...workspaceOpts(workspaceId),

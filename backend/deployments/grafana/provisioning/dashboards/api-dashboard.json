@@ -65,12 +65,12 @@
       "id": 4,
       "targets": [
         {
-          "expr": "sum(rate(http_server_request_duration_seconds_count[5m]))",
-          "legendFormat": "req/s",
+          "expr": "sum(rate(llm_generation_total[5m]))",
+          "legendFormat": "generations/s",
           "refId": "A"
         }
       ],
-      "title": "HTTP Request Rate",
+      "title": "LLM Generation Throughput",
       "type": "timeseries"
     }
   ],

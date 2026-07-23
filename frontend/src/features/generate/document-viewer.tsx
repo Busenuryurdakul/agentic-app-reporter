@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, RefreshCw } from "lucide-react";
+import { ArrowLeft, Check, Download, Loader2, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
@@ -15,8 +15,10 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError, getErrorMessage } from "@/lib/api/errors";
 import { documentsApi } from "@/lib/api/documents";
+import { exportsApi } from "@/lib/api/exports";
 import { workspacesApi } from "@/lib/api/workspaces";
 import { tr } from "@/lib/i18n/tr";
+import { useRegisterLlmActive } from "@/features/generate/llm-active-context";
 
 function formatDate(value: string) {
   if (!value) return "—";
@@ -33,6 +35,12 @@ function statusLabel(status: string) {
   if (status === "failed") return tr.generate.statusFailed;
   if (status === "pending") return tr.generate.statusPending;
   return status;
+}
+
+function approvalLabel(status?: string) {
+  if (status === "approved") return tr.generate.approvalApproved;
+  if (status === "rejected") return tr.generate.approvalRejected;
+  return tr.generate.approvalDraft;
 }
 
 /** Allow only http(s)/mailto links in rendered Markdown. */
@@ -78,6 +86,8 @@ export function DocumentViewer({
     onSuccess: async (doc) => {
       toast.success(tr.generate.regenerated);
       await queryClient.invalidateQueries({ queryKey: ["documents", workspaceId] });
+      await queryClient.invalidateQueries({ queryKey: ["observe-summary", workspaceId] });
+      await queryClient.invalidateQueries({ queryKey: ["readiness", workspaceId] });
       router.push(`/o/${orgId}/w/${workspaceId}/generate/${doc.id}`);
     },
     onError: (error) => {
@@ -89,9 +99,57 @@ export function DocumentViewer({
     },
   });
 
+  const approveMutation = useMutation({
+    mutationFn: () => documentsApi.approve(workspaceId, documentId),
+    onSuccess: async () => {
+      toast.success(tr.generate.approved);
+      await queryClient.invalidateQueries({ queryKey: ["document", workspaceId, documentId] });
+      await queryClient.invalidateQueries({ queryKey: ["documents", workspaceId] });
+      await queryClient.invalidateQueries({ queryKey: ["observe-summary", workspaceId] });
+    },
+    onError: (error) => {
+      if (error instanceof ApiError && error.status === 400) {
+        toast.error(tr.generate.approveOnlySucceeded);
+        return;
+      }
+      toast.error(getErrorMessage(error, tr.generate.approveFailed));
+    },
+  });
+
+  const exportMutation = useMutation({
+    mutationFn: () =>
+      exportsApi.create(workspaceId, {
+        document_ids: [documentId],
+        format: "markdown_zip",
+      }),
+    onSuccess: () => {
+      toast.success(tr.generate.exported);
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, tr.generate.exportFailed));
+    },
+  });
+
+  const busy =
+    regenerateMutation.isPending ||
+    approveMutation.isPending ||
+    exportMutation.isPending;
+
+  useRegisterLlmActive(regenerateMutation.isPending);
+
   function onRegenerate() {
-    if (regenerateMutation.isPending) return;
+    if (busy) return;
     regenerateMutation.mutate();
+  }
+
+  function onApprove() {
+    if (busy) return;
+    approveMutation.mutate();
+  }
+
+  function onExport() {
+    if (busy) return;
+    exportMutation.mutate();
   }
 
   const workspaceName = workspaceQuery.data?.name;
@@ -155,6 +213,11 @@ export function DocumentViewer({
                 <Badge variant={doc.status === "succeeded" ? "secondary" : "destructive"}>
                   {statusLabel(doc.status)}
                 </Badge>
+                <Badge
+                  variant={doc.approval_status === "approved" ? "default" : "outline"}
+                >
+                  {approvalLabel(doc.approval_status)}
+                </Badge>
               </div>
               {doc.error_message ? (
                 <p className="mt-3 text-sm text-destructive">{doc.error_message}</p>
@@ -165,22 +228,51 @@ export function DocumentViewer({
                 </p>
               ) : null}
             </div>
-            <Button
-              onClick={onRegenerate}
-              disabled={regenerateMutation.isPending}
-            >
-              {regenerateMutation.isPending ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" />
-                  {tr.generate.regenerating}
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="size-4" />
-                  {tr.generate.regenerate}
-                </>
-              )}
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              {doc.status === "succeeded" ? (
+                <Button onClick={onExport} disabled={busy} variant="outline">
+                  {exportMutation.isPending ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      {tr.generate.exporting}
+                    </>
+                  ) : (
+                    <>
+                      <Download className="size-4" />
+                      {tr.generate.export}
+                    </>
+                  )}
+                </Button>
+              ) : null}
+              {doc.status === "succeeded" && doc.approval_status !== "approved" ? (
+                <Button onClick={onApprove} disabled={busy} variant="secondary">
+                  {approveMutation.isPending ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      {tr.generate.approving}
+                    </>
+                  ) : (
+                    <>
+                      <Check className="size-4" />
+                      {tr.generate.approve}
+                    </>
+                  )}
+                </Button>
+              ) : null}
+              <Button onClick={onRegenerate} disabled={busy}>
+                {regenerateMutation.isPending ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    {tr.generate.regenerating}
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="size-4" />
+                    {tr.generate.regenerate}
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
 
           <article className="rounded-xl border border-border bg-background/90 px-5 py-6 shadow-sm md:px-8">

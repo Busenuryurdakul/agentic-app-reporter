@@ -10,11 +10,3 @@ scrape_configs:
           - nginx:8080
         labels:
           service: masterfabric-api
-
-  - job_name: mlc-llm
-    metrics_path: /health
-    static_configs:
-      - targets:
-          - mlc-llm:8080
-        labels:
-          service: mlc-llm

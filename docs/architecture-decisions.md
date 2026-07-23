@@ -55,7 +55,33 @@ Reuse Tenant `Workspace` in backend. No new Workspace bounded context.
 ## Monitoring storage
 
 Do not store raw prompts/outputs by default. Persist Markdown documents + generation
-metadata (`provider_name`, `model_name`, `source_fingerprint`, status).
+metadata (`provider_name`, `model_name`, `source_fingerprint`, status, approval fields).
+
+---
+
+## Observe scoring (Phase 4)
+
+**Status:** Done (Phase 4)
+
+- Readiness is deterministic: weighted profile completeness + questionnaire fill +
+  succeeded-document bonus. No LLM calls.
+- Document quality is a fixed heuristic (`has_heading`, length, language) computed
+  server-side from persisted Markdown + declared language.
+- Export packages Markdown (+ optional ZIP) with YAML front-matter only — never prompts.
+- Permissions reuse seed RBAC: `document:read`, `document:approve`, `export:create`.
+
+---
+
+## Phase 5 — MLC backend, observability, Compose scaling
+
+**Status:** Done (Phase 5)
+
+- LLM inference stays **backend-only**; frontend has no browser MLC/WebGPU runtime.
+- Compose stack (`--profile stack`): mock MLC REST server, API replicas, nginx LB, Redis
+  distributed generation lock, Prometheus + Grafana dashboards.
+- Custom metrics: `llm_generation_duration_seconds`, `llm_generation_total`, `llm_inflight`.
+- Graceful shutdown waits for in-flight generations; readiness returns `draining` during SIGTERM.
+- Frontend `LlmActiveGuard` blocks page unload while generation/regeneration is pending.
 
 ---
 
@@ -74,4 +100,6 @@ metadata (`provider_name`, `model_name`, `source_fingerprint`, status).
 | 1 Foundation | Done (auth, org, workspace, shell) |
 | 2 Profile + Questionnaire | Done (API + Turkish UI) |
 | 3 Generation / LLMProvider | Done (mock + Gemma, documents API, Üret UI) |
-| 4+ Scoring, monitoring, export | Not started |
+| 4 Observe / scoring / export | Done (readiness, quality, approve, export, Gözlemle UI) |
+| 5 MLC backend / Grafana / Compose scale | Done (Redis lock, mock MLC, nginx, reload guard) |
+| 6+ PDF / score history / LLM critique | Not started |

@@ -99,3 +99,88 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
 
   return payload as T;
 }
+
+export type ApiDownloadResult = {
+  blob: Blob;
+  filename: string;
+  contentType: string;
+};
+
+/** Binary download helper for export endpoints (ZIP / Markdown). */
+export async function apiDownload(
+  path: string,
+  options: ApiRequestOptions = {},
+): Promise<ApiDownloadResult> {
+  const {
+    method = "GET",
+    body,
+    token = authStorage.getToken(),
+    organizationId = authStorage.getOrganization()?.id ?? null,
+    workspaceId = null,
+    headers = {},
+    signal,
+    auth = true,
+  } = options;
+
+  const requestHeaders = new Headers(headers);
+
+  if (body !== undefined) {
+    requestHeaders.set("Content-Type", "application/json");
+  }
+
+  if (auth) {
+    if (!token) {
+      throw new ApiError("Authentication required", 401);
+    }
+    requestHeaders.set("Authorization", `Bearer ${token}`);
+  }
+
+  if (organizationId) {
+    requestHeaders.set("X-Organization-ID", organizationId);
+  }
+
+  if (workspaceId) {
+    requestHeaders.set("X-Workspace-ID", workspaceId);
+  }
+
+  const url = `${appConfig.apiBaseUrl}${path.startsWith("/") ? path : `/${path}`}`;
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method,
+      headers: requestHeaders,
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal,
+    });
+  } catch {
+    throw new ApiError(
+      "API'ye ulaşılamadı. NEXT_PUBLIC_API_BASE_URL değerini ve backend'in çalıştığını kontrol edin.",
+      0,
+    );
+  }
+
+  if (!response.ok) {
+    const payload = await parseBody(response);
+    const errorBody = (payload ?? {}) as ApiErrorBody;
+    const message =
+      errorBody.message ||
+      errorBody.error ||
+      `Request failed with status ${response.status}`;
+
+    if (response.status === 401 && auth) {
+      authStorage.clearSession();
+      publishSessionFromStorage();
+    }
+
+    throw new ApiError(message, response.status, errorBody);
+  }
+
+  const disposition = response.headers.get("content-disposition") ?? "";
+  const match = /filename="([^"]+)"/i.exec(disposition);
+  const filename = match?.[1] || "download.bin";
+  const contentType = response.headers.get("content-type") ?? "application/octet-stream";
+  const blob = await response.blob();
+
+  return { blob, filename, contentType };
+}

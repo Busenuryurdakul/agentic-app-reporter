@@ -37,7 +37,7 @@ services:
           name: agentic-app-reporter-db
           property: connectionString
       - key: CORS_ALLOWED_ORIGINS
-        sync: false
+        value: https://frontend-orpin-nine-72.vercel.app,https://frontend-buse7.vercel.app
 
 databases:
   - name: agentic-app-reporter-db

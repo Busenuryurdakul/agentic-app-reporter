@@ -31,6 +31,10 @@ import { ApiError, getErrorMessage } from "@/lib/api/errors";
 import { documentsApi, type DocumentSummary } from "@/lib/api/documents";
 import { workspacesApi } from "@/lib/api/workspaces";
 import { tr } from "@/lib/i18n/tr";
+import {
+  useLlmActive,
+  useRegisterLlmActive,
+} from "@/features/generate/llm-active-context";
 
 function formatDate(value: string) {
   if (!value) return "—";
@@ -49,6 +53,12 @@ function statusLabel(status: string) {
   return status;
 }
 
+function approvalLabel(status?: string) {
+  if (status === "approved") return tr.generate.approvalApproved;
+  if (status === "rejected") return tr.generate.approvalRejected;
+  return tr.generate.approvalDraft;
+}
+
 export function GeneratePage({
   orgId,
   workspaceId,
@@ -60,17 +70,11 @@ export function GeneratePage({
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [language, setLanguage] = useState<"workspace" | "tr" | "en">("workspace");
+  const { isActive: llmActive } = useLlmActive();
 
   const workspaceQuery = useQuery({
     queryKey: ["workspace", orgId, workspaceId],
     queryFn: () => workspacesApi.get(orgId, workspaceId),
-  });
-
-  const healthQuery = useQuery({
-    queryKey: ["llm-health"],
-    queryFn: () => documentsApi.health(),
-    retry: false,
-    refetchInterval: 60_000,
   });
 
   const documentsQuery = useQuery({
@@ -96,6 +100,16 @@ export function GeneratePage({
       }
       toast.error(getErrorMessage(error, tr.generate.createFailed));
     },
+  });
+
+  useRegisterLlmActive(generateMutation.isPending);
+
+  const healthQuery = useQuery({
+    queryKey: ["llm-health"],
+    queryFn: () => documentsApi.health(),
+    retry: false,
+    refetchInterval:
+      llmActive || generateMutation.isPending ? false : 60_000,
   });
 
   function onGenerate() {
@@ -263,6 +277,9 @@ function DocumentRow({ doc, href }: { doc: DocumentSummary; href: string }) {
           <Badge variant="outline">{doc.language.toUpperCase()}</Badge>
           <Badge variant={doc.status === "succeeded" ? "secondary" : "destructive"}>
             {statusLabel(doc.status)}
+          </Badge>
+          <Badge variant={doc.approval_status === "approved" ? "default" : "outline"}>
+            {approvalLabel(doc.approval_status)}
           </Badge>
         </div>
       </Link>
