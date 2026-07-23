@@ -1,3 +1,5 @@
+import packageJson from "../../package.json";
+
 function requirePublicApiBaseUrl(): string {
   const value = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
 
@@ -17,4 +19,5 @@ export const appConfig = {
   appName: "AI Geliştirme Yapılandırma Stüdyosu",
   appShortName: "Yapılandırma Stüdyosu",
   locale: "tr",
+  version: packageJson.version,
 } as const;

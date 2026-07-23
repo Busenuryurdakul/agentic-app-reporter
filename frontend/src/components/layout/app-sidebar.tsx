@@ -10,6 +10,7 @@ import {
   Telescope,
 } from "lucide-react";
 import { tr } from "@/lib/i18n/tr";
+import { appConfig } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -97,7 +98,8 @@ export function AppSidebar({
       </nav>
 
       <div className="border-t border-sidebar-border p-4 text-xs text-muted-foreground">
-        {tr.brandFooter}
+        <p>{tr.brandFooter}</p>
+        <p className="mt-2 font-medium">v{appConfig.version}</p>
       </div>
     </aside>
   );
