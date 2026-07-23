@@ -35,6 +35,7 @@ import (
 	pgIam "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/iam"
 	pgProjectProfile "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/projectprofile"
 	pgQuestionnaire "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/questionnaire"
+	pgBootstrap "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/bootstrap"
 	pgTenant "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/tenant"
 	infraWS "github.com/masterfabric-go/masterfabric/internal/infrastructure/websocket"
 
@@ -107,6 +108,13 @@ func run() error {
 	} else {
 		defer db.Close()
 		log.Info("connected to postgres")
+
+		bootstrapCtx, bootstrapCancel := context.WithTimeout(context.Background(), 60*time.Second)
+		if err := pgBootstrap.Run(bootstrapCtx, db, log); err != nil {
+			bootstrapCancel()
+			return fmt.Errorf("database bootstrap: %w", err)
+		}
+		bootstrapCancel()
 	}
 
 	// Initialize Redis
