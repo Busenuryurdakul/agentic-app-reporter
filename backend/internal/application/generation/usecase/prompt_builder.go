@@ -10,7 +10,8 @@ import (
 	"github.com/masterfabric-go/masterfabric/internal/domain/llm"
 )
 
-// PromptBuilder turns a WorkspaceLLMContext into a provider-agnostic GenerateRequest.
+const maxMissingRequiredInPrompt = 20
+
 type PromptBuilder struct{}
 
 // NewPromptBuilder creates a PromptBuilder.
@@ -161,8 +162,20 @@ func buildUserPrompt(ctx *WorkspaceLLMContext, lang string) string {
 
 	if len(ctx.MissingRequired) > 0 {
 		b.WriteString(label(lang, "## Eksik zorunlu bilgiler\n\n", "## Missing required information\n\n"))
-		for _, m := range ctx.MissingRequired {
+		show := ctx.MissingRequired
+		extra := 0
+		if len(show) > maxMissingRequiredInPrompt {
+			extra = len(show) - maxMissingRequiredInPrompt
+			show = show[:maxMissingRequiredInPrompt]
+		}
+		for _, m := range show {
 			b.WriteString(fmt.Sprintf("- `%s` (%s): %s\n", m.Key, m.Category, m.Title))
+		}
+		if extra > 0 {
+			b.WriteString(label(lang,
+				fmt.Sprintf("- ... ve %d zorunlu alan daha\n", extra),
+				fmt.Sprintf("- ... and %d more required fields\n", extra),
+			))
 		}
 		b.WriteString("\n")
 	}
