@@ -160,6 +160,7 @@ func TestGenerateDocument_SucceedsWithMockProvider(t *testing.T) {
 	uc := NewGenerateDocumentUseCase(
 		NewWorkspaceContextBuilder(wsRepo, profileRepo, setRepo, questionRepo, answerRepo),
 		NewPromptBuilder(),
+		nil,
 		provider,
 		docRepo,
 		NewGenerationGate(),
@@ -182,6 +183,7 @@ func TestGenerateDocument_DisabledReturns503(t *testing.T) {
 	uc := NewGenerateDocumentUseCase(
 		NewWorkspaceContextBuilder(wsRepo, profileRepo, setRepo, questionRepo, answerRepo),
 		NewPromptBuilder(),
+		nil,
 		&stubLLMProvider{name: "mock"},
 		docRepo,
 		NewGenerationGate(),
@@ -203,6 +205,7 @@ func TestGenerateDocument_RejectsOverlappingRequests(t *testing.T) {
 	uc := NewGenerateDocumentUseCase(
 		NewWorkspaceContextBuilder(wsRepo, profileRepo, setRepo, questionRepo, answerRepo),
 		NewPromptBuilder(),
+		nil,
 		&stubLLMProvider{name: "mock"},
 		docRepo,
 		gate,
@@ -232,6 +235,7 @@ func TestGenerateDocument_ProviderFailureMapsTo502AndPersistsFailedRow(t *testin
 	uc := NewGenerateDocumentUseCase(
 		NewWorkspaceContextBuilder(wsRepo, profileRepo, setRepo, questionRepo, answerRepo),
 		NewPromptBuilder(),
+		nil,
 		&stubLLMProvider{name: "mock", err: errors.New("upstream boom")},
 		docRepo,
 		NewGenerationGate(),

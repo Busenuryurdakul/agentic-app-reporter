@@ -358,7 +358,7 @@ func buildDependencies(
 	lockTTL := time.Duration(cfg.LLM.TimeoutSeconds+30) * time.Second
 	generationLocker := generationUC.NewGenerationLocker(redisClient, lockTTL)
 	generateDocumentUC := generationUC.NewGenerateDocumentUseCase(
-		contextBuilder, promptBuilder, llmProvider, documentRepo, generationLocker, cfg.LLM.Enabled, log,
+		contextBuilder, promptBuilder, nil, llmProvider, documentRepo, generationLocker, cfg.LLM.Enabled, log,
 	)
 	regenerateDocumentUC := generationUC.NewRegenerateDocumentUseCase(generateDocumentUC, documentRepo, workspaceRepo)
 	listDocumentsUC := generationUC.NewListDocumentsUseCase(documentRepo, workspaceRepo)

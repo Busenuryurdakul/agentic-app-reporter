@@ -46,6 +46,7 @@ func TestRegenerateDocument_CreatesNewKeepsSource(t *testing.T) {
 	generateUC := NewGenerateDocumentUseCase(
 		NewWorkspaceContextBuilder(wsRepo, profileRepo, setRepo, questionRepo, answerRepo),
 		NewPromptBuilder(),
+		nil,
 		&stubLLMProvider{
 			name: "mock",
 			resp: llm.GenerateResponse{
@@ -85,6 +86,7 @@ func TestRegenerateDocument_NotFound(t *testing.T) {
 	generateUC := NewGenerateDocumentUseCase(
 		NewWorkspaceContextBuilder(wsRepo, profileRepo, setRepo, questionRepo, answerRepo),
 		NewPromptBuilder(),
+		nil,
 		&stubLLMProvider{name: "mock"},
 		docRepo,
 		NewGenerationGate(),
