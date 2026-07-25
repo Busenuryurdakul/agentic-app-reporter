@@ -25,5 +25,16 @@ func Run(ctx context.Context, db *pgxpool.Pool, log *slog.Logger) error {
 		log.Info("backfilled org_admin roles for organization members", "count", assigned)
 	}
 
+	count, err := SeedQuestionnaires(ctx, db)
+	if err != nil {
+		return fmt.Errorf("seed questionnaires: %w", err)
+	}
+	if err := VerifyStudioDefault(ctx, db); err != nil {
+		return fmt.Errorf("verify questionnaire: %w", err)
+	}
+	if log != nil {
+		log.Info("questionnaire seeded", "set", StudioDefaultSetKey, "questions", count)
+	}
+
 	return nil
 }

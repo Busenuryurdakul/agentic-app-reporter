@@ -9,6 +9,9 @@ if [ -n "${DATABASE_URL}" ]; then
     *) GOOSE_DB_URL="${DATABASE_URL}" ;;
   esac
   /app/goose -dir /app/migrations postgres "${GOOSE_DB_URL}" up
+
+  echo "Seeding studio-default questionnaire (idempotent)..."
+  /app/seed-questionnaire
 fi
 
 exec /app/masterfabric

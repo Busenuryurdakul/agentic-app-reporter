@@ -76,20 +76,12 @@ No manual build/start commands needed for Docker runtime.
 
 ### Questionnaire seed (required once per database)
 
-RBAC roles seed on API startup. The **studio-default questionnaire** is **not** seeded at startup — run explicitly after first deploy:
-
-**Render Shell** (binary included in Docker image):
-
-```bash
-/app/seed-questionnaire
-```
-
-**Local** (External Database URL from Render):
+RBAC roles and the **studio-default questionnaire** seed automatically on API startup
+(`pgBootstrap.Run` + Render entrypoint `seed-questionnaire`). The standalone command
+remains for manual re-runs:
 
 ```bash
-cd backend
-DATABASE_URL="postgresql://..." make seed-questionnaire
-# or: go run ./cmd/seed-questionnaire
+make seed-questionnaire   # or /app/seed-questionnaire on Render Shell
 ```
 
 Properties:
