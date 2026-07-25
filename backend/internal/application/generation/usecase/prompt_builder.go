@@ -111,7 +111,14 @@ func buildUserPrompt(ctx *WorkspaceLLMContext, lang string) string {
 
 	byCategory := map[string][]VisibleAnswer{}
 	categories := make([]string, 0)
+	skippedOptional := 0
 	for _, a := range ctx.Answers {
+		if !a.Answered {
+			if !a.Required {
+				skippedOptional++
+			}
+			continue
+		}
 		cat := a.Category
 		if cat == "" {
 			cat = label(lang, "Genel", "General")
@@ -132,7 +139,7 @@ func buildUserPrompt(ctx *WorkspaceLLMContext, lang string) string {
 			sort.Slice(items, func(i, j int) bool { return items[i].Key < items[j].Key })
 			for _, a := range items {
 				val := compactJSON(a.Value)
-				if !a.Answered || val == "" {
+				if val == "" {
 					val = label(lang, "(boş)", "(empty)")
 				}
 				req := ""
@@ -143,6 +150,13 @@ func buildUserPrompt(ctx *WorkspaceLLMContext, lang string) string {
 			}
 			b.WriteString("\n")
 		}
+	}
+
+	if skippedOptional > 0 {
+		b.WriteString(label(lang,
+			fmt.Sprintf("_%d isteğe bağlı cevapsız soru bağlam dışı bırakıldı._\n\n", skippedOptional),
+			fmt.Sprintf("_%d optional unanswered questions omitted from context._\n\n", skippedOptional),
+		))
 	}
 
 	if len(ctx.MissingRequired) > 0 {
