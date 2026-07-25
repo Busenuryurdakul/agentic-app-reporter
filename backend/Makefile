@@ -167,3 +167,7 @@ seed-questionnaire:
 export-peft-dataset:
 	@test -n "$(ORG_ID)" || (echo "Set ORG_ID=<organization-uuid>" && exit 1)
 	go run ./cmd/export-peft-dataset --org-id=$(ORG_ID) --out-dir=$(or $(OUT_DIR),./peft-export) $(ARGS)
+
+## test-integration: Postgres integration tests (requires local Docker postgres)
+test-integration:
+	go test -tags=integration ./internal/infrastructure/postgres/document/...

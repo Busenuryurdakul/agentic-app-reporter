@@ -1,6 +1,7 @@
 package serializer_test
 
 import (
+	"os"
 	"strings"
 	"testing"
 
@@ -74,5 +75,25 @@ func TestEncodeLine_PreservesTurkishCharacters(t *testing.T) {
 }
 
 func TestGoldenRow_MatchesFixture(t *testing.T) {
-	t.Skip("B-S6: add testdata/product_spec_row.jsonl golden file in Faz B implementation")
+	t.Parallel()
+	row := exportdto.DatasetRow{
+		Messages: []exportdto.ChatMessage{
+			{Role: exportdto.RoleSystem, Content: "system prompt"},
+			{Role: exportdto.RoleUser, Content: "user prompt"},
+			{Role: exportdto.RoleAssistant, Content: "# Ürün Spesifikasyonu\n\n## 1. Özet"},
+		},
+		Metadata: exportdto.RowMetadata{
+			DocumentID:     uuid.MustParse("11111111-1111-4111-8111-111111111111"),
+			WorkspaceID:    uuid.MustParse("22222222-2222-4222-8222-222222222222"),
+			OrganizationID: uuid.MustParse("33333333-3333-4333-8333-333333333333"),
+			DocumentType:   "product_spec",
+			Language:       "tr",
+			ExportVersion:  exportdto.ExportVersion,
+		},
+	}
+	got, err := serializer.EncodeLine(row)
+	require.NoError(t, err)
+	want, err := os.ReadFile("testdata/product_spec_row.jsonl")
+	require.NoError(t, err)
+	assert.JSONEq(t, string(want), strings.TrimSpace(string(got)))
 }
