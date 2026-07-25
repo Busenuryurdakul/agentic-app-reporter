@@ -12,10 +12,12 @@ alerting:
             - alertmanager:9093
 
 scrape_configs:
-  - job_name: masterfabric-api
+  # Use when API runs on the host (e.g. backend\bin\server.exe on Windows :8080)
+  # and monitoring stack runs in Docker without the compose api/nginx services.
+  - job_name: masterfabric-api-native
     metrics_path: /metrics
     static_configs:
       - targets:
-          - nginx:8080
+          - host.docker.internal:8080
         labels:
-          service: masterfabric-api
+          service: masterfabric-api-native

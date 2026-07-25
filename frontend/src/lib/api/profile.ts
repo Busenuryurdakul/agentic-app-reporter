@@ -79,10 +79,10 @@ export function emptyProfile(): ProfileInfo {
 }
 
 export const profileApi = {
-  async get(workspaceId: string): Promise<ProfileInfo> {
+  async get(workspaceId: string, organizationId?: string | null): Promise<ProfileInfo> {
     try {
       return await apiRequest<ProfileInfo>(`/api/v1/workspaces/${workspaceId}/profile`, {
-        organizationId: authStorage.getOrganization()?.id ?? null,
+        organizationId: organizationId ?? authStorage.getOrganization()?.id ?? null,
         workspaceId,
       });
     } catch (error) {

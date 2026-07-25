@@ -18,9 +18,9 @@ import (
 	infraAuth "github.com/masterfabric-go/masterfabric/internal/infrastructure/auth"
 	apimgmtHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/apimanagement"
 	auditHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/audit"
+	exportHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/export"
 	generationHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/generation"
 	iamHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/iam"
-	exportHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/export"
 	observeHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/observe"
 	projectprofileHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/projectprofile"
 	questionnaireHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/questionnaire"
@@ -31,19 +31,19 @@ import (
 	infraLLM "github.com/masterfabric-go/masterfabric/internal/infrastructure/llm"
 	pgApimgmt "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/apimanagement"
 	pgAudit "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/audit"
+	pgBootstrap "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/bootstrap"
 	pgDocument "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/document"
 	pgIam "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/iam"
 	pgProjectProfile "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/projectprofile"
 	pgQuestionnaire "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/questionnaire"
-	pgBootstrap "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/bootstrap"
 	pgTenant "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/tenant"
 	infraWS "github.com/masterfabric-go/masterfabric/internal/infrastructure/websocket"
 
 	// Application use cases
 	apimgmtUC "github.com/masterfabric-go/masterfabric/internal/application/apimanagement/usecase"
+	exportUC "github.com/masterfabric-go/masterfabric/internal/application/export/usecase"
 	generationUC "github.com/masterfabric-go/masterfabric/internal/application/generation/usecase"
 	iamUC "github.com/masterfabric-go/masterfabric/internal/application/iam/usecase"
-	exportUC "github.com/masterfabric-go/masterfabric/internal/application/export/usecase"
 	observeUC "github.com/masterfabric-go/masterfabric/internal/application/observe/usecase"
 	projectprofileUC "github.com/masterfabric-go/masterfabric/internal/application/projectprofile/usecase"
 	questionnaireUC "github.com/masterfabric-go/masterfabric/internal/application/questionnaire/usecase"
@@ -108,6 +108,10 @@ func run() error {
 	} else {
 		defer db.Close()
 		log.Info("connected to postgres")
+
+		if err := telemetry.RegisterDBPoolMetrics(db); err != nil {
+			log.Warn("db pool metrics registration failed", "error", err)
+		}
 
 		bootstrapCtx, bootstrapCancel := context.WithTimeout(context.Background(), 60*time.Second)
 		if err := pgBootstrap.Run(bootstrapCtx, db, log); err != nil {

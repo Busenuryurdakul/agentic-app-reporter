@@ -5,6 +5,17 @@ export const MOBILE_PLATFORMS = [
 
 export type MobilePlatformId = (typeof MOBILE_PLATFORMS)[number]["id"];
 
+export const PLATFORM_TYPES = [
+  { id: "web", label: "Web" },
+  { id: "mobile", label: "Mobil" },
+] as const;
+
+export type PlatformTypeId = (typeof PLATFORM_TYPES)[number]["id"];
+
+export function platformTypeLabel(id: PlatformTypeId) {
+  return PLATFORM_TYPES.find((type) => type.id === id)?.label ?? id;
+}
+
 export const TECHNOLOGY_CATEGORIES = [
   { id: "frontend", label: "Frontend" },
   { id: "mobile", label: "Mobil" },

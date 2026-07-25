@@ -2,18 +2,13 @@ package telemetry
 
 import (
 	"context"
-	"sync"
+	"errors"
 
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 )
 
-var (
-	llmMetricsOnce sync.Once
-	llmMetrics     *LLMMetrics
-	llmMetricsErr  error
-)
+var errInstrumentsNotInitialized = errors.New("telemetry instruments not initialized")
 
 // LLMMetrics holds OpenTelemetry instruments for LLM generation observability.
 type LLMMetrics struct {
@@ -22,41 +17,12 @@ type LLMMetrics struct {
 	Inflight           metric.Int64UpDownCounter
 }
 
-// LLMMetricsInstruments returns shared LLM metric instruments (lazy init).
+// LLMMetricsInstruments returns shared LLM metric instruments after telemetry.Setup.
 func LLMMetricsInstruments() (*LLMMetrics, error) {
-	llmMetricsOnce.Do(func() {
-		meter := otel.Meter("masterfabric/llm")
-		var err error
-		llmMetrics = &LLMMetrics{}
-
-		llmMetrics.GenerationDuration, err = meter.Float64Histogram(
-			"llm_generation_duration_seconds",
-			metric.WithDescription("Duration of LLM generation calls in seconds"),
-			metric.WithUnit("s"),
-		)
-		if err != nil {
-			llmMetricsErr = err
-			return
-		}
-
-		llmMetrics.GenerationTotal, err = meter.Int64Counter(
-			"llm_generation_total",
-			metric.WithDescription("Total LLM generation attempts"),
-		)
-		if err != nil {
-			llmMetricsErr = err
-			return
-		}
-
-		llmMetrics.Inflight, err = meter.Int64UpDownCounter(
-			"llm_inflight",
-			metric.WithDescription("In-flight LLM generation calls"),
-		)
-		if err != nil {
-			llmMetricsErr = err
-		}
-	})
-	return llmMetrics, llmMetricsErr
+	if llmMetrics == nil {
+		return nil, errInstrumentsNotInitialized
+	}
+	return llmMetrics, nil
 }
 
 // RecordLLMGeneration records duration and outcome for an LLM call.
@@ -89,4 +55,19 @@ func DecLLMInflight(ctx context.Context) {
 		return
 	}
 	m.Inflight.Add(ctx, -1)
+}
+
+// SetLLMProviderHealth records provider health as 1 (healthy) or 0 (unhealthy).
+func SetLLMProviderHealth(ctx context.Context, provider string, healthy bool) {
+	if provider == "" || llmHealthGauge == nil {
+		return
+	}
+
+	value := float64(0)
+	if healthy {
+		value = 1
+	}
+	llmHealthGauge.Record(ctx, value, metric.WithAttributes(
+		attribute.String("provider", provider),
+	))
 }

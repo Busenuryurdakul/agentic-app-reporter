@@ -22,12 +22,14 @@ type ReadinessComponents struct {
 
 // ReadinessResult is the deterministic workspace readiness score.
 type ReadinessResult struct {
-	Overall                  int                      `json:"overall"`
-	Components               ReadinessComponents      `json:"components"`
+	Overall                  int                       `json:"overall"`
+	Components               ReadinessComponents       `json:"components"`
+	TotalRequired            int                       `json:"total_required"`
+	TotalAnswered            int                       `json:"total_answered"`
 	MissingRequiredQuestions []MissingRequiredQuestion `json:"missing_required_questions"`
-	SucceededDocumentCount   int                      `json:"succeeded_document_count"`
-	FailedDocumentCount      int                      `json:"failed_document_count"`
-	ComputedAt               time.Time                `json:"computed_at"`
+	SucceededDocumentCount   int                       `json:"succeeded_document_count"`
+	FailedDocumentCount      int                       `json:"failed_document_count"`
+	ComputedAt               time.Time                 `json:"computed_at"`
 }
 
 // GenerationTotals counts documents by status.

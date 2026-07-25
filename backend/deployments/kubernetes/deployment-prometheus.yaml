@@ -30,6 +30,8 @@ spec:
             - name: prometheus-config
               mountPath: /etc/prometheus/prometheus.yml
               subPath: prometheus.yml
+            - name: prometheus-alerts
+              mountPath: /etc/prometheus/alerts
             - name: prom-data
               mountPath: /prometheus
           resources:
@@ -43,5 +45,8 @@ spec:
         - name: prometheus-config
           configMap:
             name: prometheus-config
+        - name: prometheus-alerts
+          configMap:
+            name: prometheus-alerts
         - name: prom-data
           emptyDir: {}

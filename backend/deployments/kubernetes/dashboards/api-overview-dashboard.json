@@ -8,54 +8,47 @@
   "panels": [
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "unit": "s"
-        },
-        "overrides": []
-      },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
       "id": 1,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(llm_generation_duration_seconds_bucket[5m])) by (le, provider))",
-          "legendFormat": "p95 {{provider}}",
+          "expr": "sum(rate(http_requests_total[5m]))",
+          "legendFormat": "requests/s",
           "refId": "A"
         }
       ],
-      "title": "LLM Generation Duration (p95)",
+      "title": "HTTP Request Rate",
       "type": "timeseries"
     },
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
       "id": 2,
       "targets": [
         {
-          "expr": "sum(rate(llm_generation_total[5m])) by (status)",
-          "legendFormat": "{{status}}",
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95",
           "refId": "A"
         }
       ],
-      "title": "LLM Generation Rate by Status",
+      "title": "HTTP Latency (p95)",
       "type": "timeseries"
     },
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "fieldConfig": { "defaults": { "unit": "percentunit" }, "overrides": [] },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
       "id": 3,
       "targets": [
         {
-          "expr": "llm_inflight",
-          "legendFormat": "inflight",
+          "expr": "sum(rate(http_requests_total{status_code=~\"5..\"}[5m])) / clamp_min(sum(rate(http_requests_total[5m])), 0.001)",
+          "legendFormat": "5xx ratio",
           "refId": "A"
         }
       ],
-      "title": "In-flight LLM Generations",
+      "title": "HTTP 5xx Error Rate",
       "type": "timeseries"
     },
     {
@@ -65,45 +58,38 @@
       "id": 4,
       "targets": [
         {
-          "expr": "sum(rate(llm_generation_total[5m]))",
-          "legendFormat": "generations/s",
+          "expr": "http_requests_in_flight",
+          "legendFormat": "in-flight",
           "refId": "A"
         }
       ],
-      "title": "LLM Generation Throughput",
+      "title": "In-flight HTTP Requests",
       "type": "timeseries"
     },
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": {
-        "defaults": {
-          "max": 1,
-          "min": 0,
-          "unit": "short"
-        },
-        "overrides": []
-      },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
       "id": 5,
       "targets": [
         {
-          "expr": "llm_provider_health",
-          "legendFormat": "{{provider}}",
+          "expr": "histogram_quantile(0.95, sum(rate(http_response_size_bytes_bucket[5m])) by (le))",
+          "legendFormat": "p95 response size",
           "refId": "A"
         }
       ],
-      "title": "LLM Provider Health (1=healthy)",
+      "title": "HTTP Response Size (p95)",
       "type": "timeseries"
     }
   ],
   "refresh": "30s",
   "schemaVersion": 39,
-  "tags": ["masterfabric", "llm"],
+  "tags": ["masterfabric", "api", "http"],
   "templating": { "list": [] },
   "time": { "from": "now-1h", "to": "now" },
   "timepicker": {},
   "timezone": "browser",
-  "title": "MasterFabric LLM Generation",
-  "uid": "masterfabric-api-llm",
+  "title": "MasterFabric API Overview",
+  "uid": "masterfabric-api-overview",
   "version": 1
 }

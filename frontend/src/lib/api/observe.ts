@@ -21,6 +21,8 @@ export type ReadinessResult = {
     questionnaire: number;
     documents: number;
   };
+  total_required: number;
+  total_answered: number;
   missing_required_questions: MissingRequiredQuestion[];
   succeeded_document_count: number;
   failed_document_count: number;
@@ -54,26 +56,26 @@ export type ObserveSummaryResult = {
   recent: RecentDocumentSummary[];
 };
 
-function workspaceOpts(workspaceId: string) {
+function workspaceOpts(workspaceId: string, organizationId?: string | null) {
   return {
-    organizationId: authStorage.getOrganization()?.id ?? null,
+    organizationId: organizationId ?? authStorage.getOrganization()?.id ?? null,
     workspaceId,
   };
 }
 
 export const observeApi = {
-  readiness(workspaceId: string) {
+  readiness(workspaceId: string, organizationId?: string | null) {
     return apiRequest<ReadinessResult>(
       `/api/v1/workspaces/${workspaceId}/readiness`,
-      workspaceOpts(workspaceId),
+      workspaceOpts(workspaceId, organizationId),
     );
   },
 
-  summary(workspaceId: string, limit = 10) {
+  summary(workspaceId: string, limit = 10, organizationId?: string | null) {
     const q = limit > 0 ? `?limit=${limit}` : "";
     return apiRequest<ObserveSummaryResult>(
       `/api/v1/workspaces/${workspaceId}/observe/summary${q}`,
-      workspaceOpts(workspaceId),
+      workspaceOpts(workspaceId, organizationId),
     );
   },
 };

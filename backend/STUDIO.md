@@ -229,25 +229,82 @@ No raw prompts in the package.
 4. **Graceful shutdown** — SIGTERM sets readiness to `draining`, waits for in-flight LLM
    (up to `LLM_TIMEOUT_SECONDS+30`), then stops HTTP server. API containers use
    `stop_grace_period: 120s`.
-5. **Observability** — `/metrics` exposes `llm_generation_*` instruments; Prometheus +
-   Grafana in Compose `--profile stack`.
+5. **Observability** — `/metrics` exposes HTTP, LLM, and PostgreSQL pool instruments;
+   Prometheus alert rules and Grafana dashboards ship in Compose `--profile stack`.
+
+#### Metrics (`GET /metrics`, no auth)
+
+| Group | Metrics | Labels |
+|-------|---------|--------|
+| HTTP | `http_requests_total`, `http_request_duration_seconds`, `http_requests_in_flight`, `http_response_size_bytes` | `method`, `route`, `status_code` |
+| LLM | `llm_generation_total`, `llm_generation_duration_seconds`, `llm_inflight`, `llm_provider_health` | `provider`, `status` |
+| DB pool | `db_pool_connections`, `db_pool_acquire_total`, `db_pool_acquire_duration_seconds_total`, `db_pool_canceled_acquire_total` | `state` (connections only) |
+
+Raw prompts, document bodies, org/workspace IDs, and user PII are never exported as labels.
+
+#### Grafana dashboards (Compose provisioning)
+
+| Dashboard | UID |
+|-----------|-----|
+| MasterFabric API Overview | `masterfabric-api-overview` |
+| MasterFabric LLM Generation | `masterfabric-api-llm` |
+| MasterFabric Database Pool | `masterfabric-db-pool` |
+
+#### Prometheus alerts
+
+Rules live in `deployments/prometheus/alerts/api-alerts.yml` (group `masterfabric-api`):
+
+- `APIDown`, `HighAPI5xxRate`, `HighLLMErrorRate`, `LLMProviderUnhealthy`, `HighLLMLatencyP95`, `DBPoolNearExhaustion`, `DBPoolAcquireCanceled`
+
+View firing alerts: Prometheus → **Alerts** tab (`http://localhost:9090/alerts`).
+
+#### Alertmanager
+
+Compose ships Alertmanager at `http://localhost:9093`. Default receivers are UI-only (no Slack/email)
+so alerts are visible under **Alerts** without external noise.
+
+To enable Slack/webhook notifications locally:
+
+1. Copy `deployments/alertmanager/alertmanager.local.example.yml` → `alertmanager.local.yml`
+2. Set your webhook URL
+3. Mount the override in `docker-compose.yml` or replace `alertmanager.yml`
+
+Kubernetes: `configmap-alertmanager.yaml` + `deployment-alertmanager.yaml`.
 
 ### Compose full stack
 
 ```bash
 make docker-up              # postgres + redis + kafka (infra only)
 make migrate && go run ./scripts
-make compose-up-full        # + mlc-llm mock + api x2 + nginx + prometheus + grafana
+make compose-up-full        # + mlc-llm mock + api x2 + nginx + prometheus + alertmanager + grafana
 make compose-scale-api      # scale api to 3 replicas
 node ./scripts/smoke_phase5_compose.mjs
 ```
 
+### Windows native API + Docker monitoring
+
+When the Go API runs on the host (`backend\bin\server.exe` on `:8080`) without the compose `api`/`nginx`
+services, start only the monitoring profile with the native Prometheus config:
+
+```bash
+make compose-monitoring-native
+# or PowerShell:
+# $env:PROMETHEUS_CONFIG="prometheus.native.yml"
+# docker compose -f deployments/docker-compose.yml --profile monitoring up -d
+```
+
+Prometheus scrapes `host.docker.internal:8080` (Docker Desktop on Windows/macOS).
+Ensure Postgres/Redis are reachable by the native API process.
+
+Stop monitoring: `make compose-down-monitoring`
+
 | Service | URL |
-|---------|-----|
+|--------|-----|
 | API (nginx LB) | http://localhost:8080 |
 | MLC mock | http://localhost:8081 |
 | Grafana | http://localhost:3001 (admin/admin) |
 | Prometheus | http://localhost:9090 |
+| Alertmanager | http://localhost:9093 |
 | Loki | http://localhost:3100 |
 
 Frontend: `NEXT_PUBLIC_API_BASE_URL=http://localhost:8080` (nginx).
@@ -257,7 +314,9 @@ View in Grafana → Explore → Loki datasource (`{service="api"}`).
 
 ### Kubernetes (HPA + Ingress)
 
-Separate containers: API, nginx gateway, Prometheus, Grafana, Loki, Promtail.
+Separate containers: API, nginx gateway, Prometheus, Alertmanager, Grafana, Loki, Promtail.
+Grafana dashboards are provisioned via Kustomize `configMapGenerator` from `deployments/kubernetes/dashboards/`
+(copies of Compose dashboards — keep in sync when editing Grafana JSON under `deployments/grafana/provisioning/dashboards/`).
 API pods scale horizontally via HPA (2–10 replicas, CPU/memory targets).
 Graceful shutdown: `terminationGracePeriodSeconds: 120` + readiness `draining`.
 

@@ -89,6 +89,8 @@ func (uc *ReadinessUseCase) Execute(ctx context.Context, workspaceID uuid.UUID) 
 			Questionnaire: components.Questionnaire,
 			Documents:     components.Documents,
 		},
+		TotalRequired:            missing.Total,
+		TotalAnswered:            missing.Answered,
 		MissingRequiredQuestions: gaps,
 		SucceededDocumentCount:   stats.Succeeded,
 		FailedDocumentCount:      stats.Failed,

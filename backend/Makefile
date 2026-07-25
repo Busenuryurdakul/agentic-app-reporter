@@ -1,4 +1,4 @@
-.PHONY: build run test lint migrate migrate-down docker-up docker-down compose-up-full compose-scale-api k8s-apply k8s-delete clean help
+.PHONY: build run test lint migrate migrate-down docker-up docker-down compose-up-full compose-monitoring-native compose-scale-api k8s-apply k8s-delete clean help
 
 APP_NAME := masterfabric
 BUILD_DIR := bin
@@ -81,6 +81,16 @@ compose-scale-api:
 ## compose-down-full: Stop full stack including profile services
 compose-down-full:
 	$(COMPOSE) --profile stack down
+
+## compose-monitoring-native: Prometheus + Grafana + Alertmanager scraping host API (:8080)
+## Use when running backend\\bin\\server.exe natively on Windows/macOS with Docker Desktop.
+compose-monitoring-native:
+	@echo "Starting monitoring stack (native API scrape via host.docker.internal:8080)..."
+	PROMETHEUS_CONFIG=prometheus.native.yml $(COMPOSE) --profile monitoring up -d prometheus alertmanager grafana loki promtail
+
+## compose-down-monitoring: Stop monitoring profile services
+compose-down-monitoring:
+	PROMETHEUS_CONFIG=prometheus.native.yml $(COMPOSE) --profile monitoring down
 
 ## k8s-apply: Deploy Kubernetes stack (requires kubectl + nginx ingress controller)
 k8s-apply:

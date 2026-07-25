@@ -2,6 +2,7 @@ import type { UpsertProfileRequest } from "@/lib/api/profile";
 import {
   PROJECT_TECHNOLOGIES,
   type MobilePlatformId,
+  type PlatformTypeId,
   type TechnologyId,
   mobilePlatformLabel,
   technologyLabel,
@@ -10,6 +11,7 @@ import {
 export type PreProjectInput = {
   name: string;
   description?: string;
+  platformTypes: PlatformTypeId[];
   mobilePlatforms: MobilePlatformId[];
   technologies: TechnologyId[];
 };
@@ -37,11 +39,27 @@ function labelsForCategory(
 
 /** Maps bootstrap answers into a planned project profile (ön proje). */
 export function buildPreProjectProfile(input: PreProjectInput): UpsertProfileRequest {
-  const platformLabels = input.mobilePlatforms.map(mobilePlatformLabel);
-  const productType =
-    platformLabels.length > 0
-      ? `Mobil uygulama (${platformLabels.join(" + ")})`
-      : "Yazılım projesi";
+  const platformLabels: string[] = [];
+  if (input.platformTypes.includes("web")) {
+    platformLabels.push("Web");
+  }
+  if (input.platformTypes.includes("mobile")) {
+    platformLabels.push(...input.mobilePlatforms.map(mobilePlatformLabel));
+  }
+
+  const productTypeParts: string[] = [];
+  if (input.platformTypes.includes("web")) {
+    productTypeParts.push("Web uygulaması");
+  }
+  if (input.platformTypes.includes("mobile")) {
+    const mobileLabels = input.mobilePlatforms.map(mobilePlatformLabel);
+    productTypeParts.push(
+      mobileLabels.length > 0
+        ? `Mobil uygulama (${mobileLabels.join(" + ")})`
+        : "Mobil uygulama",
+    );
+  }
+  const productType = productTypeParts.join(" · ") || "Yazılım projesi";
 
   const frontendTechs = labelsForCategory(input.technologies, "frontend");
   const mobileTechs = labelsForCategory(input.technologies, "mobile");
@@ -56,10 +74,9 @@ export function buildPreProjectProfile(input: PreProjectInput): UpsertProfileReq
     project_status: "planned",
     preferred_document_language: "tr",
     main_use_cases:
-      platformLabels.length > 0
-        ? `Hedef mobil platformlar: ${platformLabels.join(", ")}`
-        : "",
+      platformLabels.length > 0 ? `Hedef platformlar: ${platformLabels.join(", ")}` : "",
     frontend: {
+      platform_types: input.platformTypes,
       platforms: input.mobilePlatforms,
       platform_labels: platformLabels,
       technologies: [...frontendTechs, ...mobileTechs],

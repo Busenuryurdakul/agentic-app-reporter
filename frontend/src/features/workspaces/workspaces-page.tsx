@@ -1,19 +1,21 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FolderKanban, Plus } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { EmptyState } from "@/components/layout/empty-state";
+import { ProjectCard } from "@/features/projects/project-card";
 import { getErrorMessage } from "@/lib/api/errors";
+import { observeApi } from "@/lib/api/observe";
+import { profileApi } from "@/lib/api/profile";
 import { workspacesApi } from "@/lib/api/workspaces";
+import type { Organization } from "@/lib/api/types";
 import { tr } from "@/lib/i18n/tr";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -70,6 +72,41 @@ export function WorkspacesPage({ orgId }: { orgId: string }) {
 
   const workspaces = workspacesQuery.data ?? [];
 
+  const organizationStub: Organization = {
+    id: orgId,
+    name: "",
+    slug: "",
+    status: "active",
+    created_at: "",
+  };
+
+  const profileQueries = useQueries({
+    queries: workspaces.map((workspace) => ({
+      queryKey: ["profile", orgId, workspace.id],
+      queryFn: () => profileApi.get(workspace.id, orgId),
+      enabled: workspaces.length > 0,
+      staleTime: 60_000,
+    })),
+  });
+
+  const readinessQueries = useQueries({
+    queries: workspaces.map((workspace) => ({
+      queryKey: ["readiness", orgId, workspace.id],
+      queryFn: () => observeApi.readiness(workspace.id, orgId),
+      enabled: workspaces.length > 0,
+      staleTime: 60_000,
+    })),
+  });
+
+  const summaryQueries = useQueries({
+    queries: workspaces.map((workspace) => ({
+      queryKey: ["observe-summary", orgId, workspace.id],
+      queryFn: () => observeApi.summary(workspace.id, 1, orgId),
+      enabled: workspaces.length > 0,
+      staleTime: 60_000,
+    })),
+  });
+
   return (
     <DashboardShell
       orgId={orgId}
@@ -90,8 +127,8 @@ export function WorkspacesPage({ orgId }: { orgId: string }) {
         <section className="space-y-4">
           {workspacesQuery.isLoading ? (
             <>
-              <Skeleton className="h-28 w-full" />
-              <Skeleton className="h-28 w-full" />
+              <Skeleton className="h-72 w-full" />
+              <Skeleton className="h-72 w-full" />
             </>
           ) : null}
 
@@ -121,23 +158,19 @@ export function WorkspacesPage({ orgId }: { orgId: string }) {
           ) : null}
 
           <div className="grid gap-4">
-            {workspaces.map((workspace) => (
-              <Link key={workspace.id} href={`/o/${orgId}/w/${workspace.id}/plan`}>
-                <Card className="transition-colors hover:border-teal-700/30 hover:bg-teal-50/40">
-                  <CardHeader className="flex flex-row items-start justify-between gap-3">
-                    <div>
-                      <CardTitle className="text-lg">{workspace.name}</CardTitle>
-                      <CardDescription>/{workspace.slug}</CardDescription>
-                    </div>
-                    <Badge variant="secondary">{workspace.status}</Badge>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      {workspace.description || tr.workspace.noDescription}
-                    </p>
-                  </CardContent>
-                </Card>
-              </Link>
+            {workspaces.map((workspace, index) => (
+              <ProjectCard
+                key={workspace.id}
+                project={{ ...workspace, organization: organizationStub }}
+                profile={profileQueries[index]?.data}
+                readiness={readinessQueries[index]?.data}
+                summary={summaryQueries[index]?.data}
+                isLoading={
+                  profileQueries[index]?.isLoading &&
+                  readinessQueries[index]?.isLoading &&
+                  summaryQueries[index]?.isLoading
+                }
+              />
             ))}
           </div>
         </section>

@@ -6,6 +6,7 @@ import (
 	"github.com/masterfabric-go/masterfabric/internal/application/generation/dto"
 	"github.com/masterfabric-go/masterfabric/internal/domain/llm"
 	domainErr "github.com/masterfabric-go/masterfabric/internal/shared/errors"
+	"github.com/masterfabric-go/masterfabric/internal/shared/telemetry"
 )
 
 // ProviderHealthUseCase probes the configured LLM provider.
@@ -29,12 +30,14 @@ func (uc *ProviderHealthUseCase) Execute(ctx context.Context) (*dto.ProviderHeal
 
 	name := uc.provider.Name()
 	if !uc.enabled {
-		return &dto.ProviderHealthInfo{
+		info := &dto.ProviderHealthInfo{
 			Provider: name,
 			Healthy:  false,
 			Message:  "LLM disabled",
 			Enabled:  false,
-		}, nil
+		}
+		telemetry.SetLLMProviderHealth(ctx, name, false)
+		return info, nil
 	}
 
 	health, err := uc.provider.Health(ctx)
@@ -42,12 +45,14 @@ func (uc *ProviderHealthUseCase) Execute(ctx context.Context) (*dto.ProviderHeal
 		if ctx.Err() != nil {
 			return nil, err
 		}
-		return &dto.ProviderHealthInfo{
+		info := &dto.ProviderHealthInfo{
 			Provider: name,
 			Healthy:  false,
 			Message:  "provider health check failed",
 			Enabled:  true,
-		}, nil
+		}
+		telemetry.SetLLMProviderHealth(ctx, name, false)
+		return info, nil
 	}
 
 	msg := health.Message
@@ -64,10 +69,12 @@ func (uc *ProviderHealthUseCase) Execute(ctx context.Context) (*dto.ProviderHeal
 		providerName = name
 	}
 
-	return &dto.ProviderHealthInfo{
+	info := &dto.ProviderHealthInfo{
 		Provider: providerName,
 		Healthy:  health.Healthy,
 		Message:  msg,
 		Enabled:  true,
-	}, nil
+	}
+	telemetry.SetLLMProviderHealth(ctx, providerName, info.Healthy)
+	return info, nil
 }

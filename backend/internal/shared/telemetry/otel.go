@@ -37,6 +37,10 @@ func Setup(ctx context.Context, serviceName, serviceVersion string) (func(contex
 	)
 	otel.SetMeterProvider(meterProvider)
 
+	if err := initInstruments(); err != nil {
+		return nil, fmt.Errorf("init instruments: %w", err)
+	}
+
 	// Traces: in-memory (no-op exporter for Phase 1)
 	tracerProvider := sdktrace.NewTracerProvider(
 		sdktrace.WithResource(res),

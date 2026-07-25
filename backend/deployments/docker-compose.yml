@@ -148,20 +148,35 @@ services:
         condition: service_healthy
 
   prometheus:
-    profiles: ["stack"]
+    profiles: ["stack", "monitoring"]
     image: prom/prometheus:v2.55.1
     container_name: masterfabric-prometheus
     ports:
       - "${PROMETHEUS_HOST_BIND:-127.0.0.1}:9090:9090"
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/${PROMETHEUS_CONFIG:-prometheus.yml}:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts:/etc/prometheus/alerts:ro
       - promdata:/prometheus
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
+    depends_on:
+      - alertmanager
+
+  alertmanager:
+    profiles: ["stack", "monitoring"]
+    image: prom/alertmanager:v0.27.0
+    container_name: masterfabric-alertmanager
+    ports:
+      - "${ALERTMANAGER_HOST_BIND:-127.0.0.1}:9093:9093"
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
 
   grafana:
-    profiles: ["stack"]
+    profiles: ["stack", "monitoring"]
     image: grafana/grafana:11.4.0
     container_name: masterfabric-grafana
     ports:
@@ -178,7 +193,7 @@ services:
       - loki
 
   loki:
-    profiles: ["stack"]
+    profiles: ["stack", "monitoring"]
     image: grafana/loki:3.3.2
     container_name: masterfabric-loki
     ports:
@@ -189,7 +204,7 @@ services:
     command: -config.file=/etc/loki/local-config.yaml
 
   promtail:
-    profiles: ["stack"]
+    profiles: ["stack", "monitoring"]
     image: grafana/promtail:3.3.2
     container_name: masterfabric-promtail
     volumes:

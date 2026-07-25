@@ -82,6 +82,7 @@ func New(deps Dependencies) *chi.Mux {
 
 	// Global middleware
 	r.Use(middleware.RequestID)
+	r.Use(middleware.Metrics())
 	r.Use(middleware.Logging(deps.Logger))
 	r.Use(middleware.Recoverer(deps.Logger))
 	if deps.MaxBodyBytes > 0 {

@@ -1,0 +1,84 @@
+groups:
+  - name: masterfabric-api
+    rules:
+      - alert: APIDown
+        expr: up{job="masterfabric-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: MasterFabric API scrape target is down
+          description: Prometheus cannot scrape the API /metrics endpoint for more than 2 minutes.
+
+      - alert: HighAPI5xxRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status_code=~"5.."}[5m]))
+            /
+            clamp_min(sum(rate(http_requests_total[5m])), 0.001)
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Elevated HTTP 5xx error rate
+          description: More than 5% of API requests returned 5xx over the last 5 minutes.
+
+      - alert: HighLLMErrorRate
+        expr: |
+          (
+            sum(rate(llm_generation_total{status="error"}[5m]))
+            /
+            clamp_min(sum(rate(llm_generation_total[5m])), 0.001)
+          ) > 0.10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Elevated LLM generation error rate
+          description: More than 10% of LLM generation attempts failed over the last 5 minutes.
+
+      - alert: LLMProviderUnhealthy
+        expr: llm_provider_health == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: LLM provider unhealthy
+          description: Provider {{ $labels.provider }} reported unhealthy for more than 5 minutes.
+
+      - alert: HighLLMLatencyP95
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(llm_generation_duration_seconds_bucket[5m])) by (le, provider)
+          ) > 60
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: High LLM generation latency
+          description: p95 LLM generation latency for provider {{ $labels.provider }} exceeded 60s.
+
+      - alert: DBPoolNearExhaustion
+        expr: |
+          (
+            sum(db_pool_connections{state="acquired"})
+            /
+            clamp_min(sum(db_pool_connections{state="max"}), 1)
+          ) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: PostgreSQL connection pool near exhaustion
+          description: More than 90% of database pool connections are acquired.
+
+      - alert: DBPoolAcquireCanceled
+        expr: increase(db_pool_canceled_acquire_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Database pool acquire cancellations detected
+          description: Connection acquire operations were canceled in the last 5 minutes.

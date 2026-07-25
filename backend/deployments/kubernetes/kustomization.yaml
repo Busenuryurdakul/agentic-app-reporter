@@ -8,6 +8,8 @@ resources:
   - secret-api.yaml
   - configmap-nginx.yaml
   - configmap-prometheus.yaml
+  - configmap-prometheus-alerts.yaml
+  - configmap-alertmanager.yaml
   - configmap-grafana.yaml
   - configmap-loki.yaml
   - configmap-promtail.yaml
@@ -16,6 +18,8 @@ resources:
   - service-api.yaml
   - deployment-nginx.yaml
   - service-nginx.yaml
+  - deployment-alertmanager.yaml
+  - service-alertmanager.yaml
   - deployment-prometheus.yaml
   - service-prometheus.yaml
   - deployment-grafana.yaml
@@ -25,6 +29,14 @@ resources:
   - daemonset-promtail.yaml
   - hpa-api.yaml
   - ingress.yaml
+
+configMapGenerator:
+  - name: grafana-dashboards
+    files:
+      - dashboards/dashboard.yml
+      - dashboards/api-overview-dashboard.json
+      - dashboards/api-dashboard.json
+      - dashboards/db-dashboard.json
 
 labels:
   - pairs:

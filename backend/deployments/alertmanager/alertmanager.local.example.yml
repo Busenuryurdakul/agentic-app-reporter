@@ -1,0 +1,25 @@
+# Optional local overrides (gitignored). Copy from alertmanager.local.example.yml
+# and set webhook / Slack URL for real notifications.
+
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ['alertname', 'severity']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  receiver: default
+  routes:
+    - matchers:
+        - severity="critical"
+      receiver: slack-critical
+
+receivers:
+  - name: default
+  - name: slack-critical
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/REPLACE/ME'
+        channel: '#alerts'
+        title: '{{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
