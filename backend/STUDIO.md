@@ -338,3 +338,22 @@ Hosts (add to `/etc/hosts` or equivalent):
 While generate/regenerate is pending, the Üret layout registers LLM-active state:
 `beforeunload` warning, health poll paused. See `frontend/src/features/generate/llm-active-context.tsx`.
 
+## Stage 3 — MLC Docker + Render external LLM
+
+**Hybrid default** — see `deployments/LLM_HYBRID.md` and `make llm-hybrid`.
+
+MLC runs as an **OpenAI-compatible HTTP server** outside the Go binary. The backend uses
+`LLM_PROVIDER=gemma` + `LLM_BASE_URL` — no dedicated `mlc` registry key.
+
+| Mode | Command / env | LLM runtime |
+|------|---------------|-------------|
+| A — Fast dev | `LLM_PROVIDER=mock`, `make run` | In-process mock |
+| B — HF external | `gemma` + HF URL, `make run` | Hugging Face Inference |
+| C — Compose mock | `make compose-up-full` | `deployments/mock-llm` |
+| D — GPU MLC | `make compose-up-mlc-gpu` | `deployments/mlc-llm/Dockerfile` |
+| E — Render prod | Render env | External URL (HF or GPU VM) |
+
+Verify: `make verify-mlc` (endpoint) · `node ./scripts/verify_llm.mjs` (HF + API health)
+
+Render requires manual env after blueprint deploy: `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY`.
+

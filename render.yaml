@@ -3,6 +3,9 @@
 #
 # Deploy: Render Dashboard → New → Blueprint → connect this repo.
 # After deploy, set CORS_ALLOWED_ORIGINS to your frontend URL(s).
+#
+# LLM: Render has no GPU. Set LLM_BASE_URL / LLM_MODEL / LLM_API_KEY to your
+# external MLC or Hugging Face endpoint. See backend/deployments/render-external-llm.md
 
 services:
   - type: web
@@ -18,14 +21,27 @@ services:
         value: production
       - key: SERVER_HOST
         value: 0.0.0.0
+      - key: SERVER_WRITE_TIMEOUT_SECONDS
+        value: "130"
       - key: KAFKA_ENABLED
         value: "false"
       - key: LLM_ENABLED
         value: "true"
       - key: LLM_PROVIDER
-        value: mock
+        value: gemma
       - key: LLM_ALLOW_MOCK_IN_PRODUCTION
-        value: "true"
+        value: "false"
+      - key: LLM_TIMEOUT_SECONDS
+        value: "120"
+      - key: LLM_MAX_RETRIES
+        value: "2"
+      # Set manually in Render dashboard (secrets; not synced from repo):
+      - key: LLM_BASE_URL
+        sync: false
+      - key: LLM_MODEL
+        sync: false
+      - key: LLM_API_KEY
+        sync: false
       - key: LOG_LEVEL
         value: info
       - key: LOG_FORMAT

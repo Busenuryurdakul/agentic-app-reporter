@@ -47,7 +47,32 @@ make run
 API: http://localhost:8080  
 Health: http://localhost:8080/health/live
 
-See `backend/STUDIO.md` for Phase 1–3 backend notes (including LLM + document APIs).
+See `backend/STUDIO.md` for Phase 1–5 backend notes (including LLM + document APIs).
+
+### MLC LLM — Hybrid (Stage 3)
+
+Five modes (A–E): mock dev, HF external, Compose mock, local GPU MLC, Render prod.
+Same `gemma` adapter — only env changes.
+
+```bash
+make llm-hybrid          # quick reference
+# Guide: backend/deployments/LLM_HYBRID.md
+```
+
+```bash
+# Daily: mock or HF (your .env)
+make run
+
+# Integration: Compose mock stack
+make compose-up-full && make verify-mlc
+
+# GPU MLC (optional)
+make compose-up-mlc-gpu
+
+# Render: deployments/render-external-llm.md
+```
+
+Details: `backend/deployments/LLM_HYBRID.md`, `STAGE3_MLC_PLAN.md`
 
 ## Architecture
 

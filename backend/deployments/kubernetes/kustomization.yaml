@@ -15,6 +15,7 @@ resources:
   - configmap-promtail.yaml
   - rbac-promtail.yaml
   - deployment-api.yaml
+  - deployment-mlc-llm.yaml
   - service-api.yaml
   - deployment-nginx.yaml
   - service-nginx.yaml

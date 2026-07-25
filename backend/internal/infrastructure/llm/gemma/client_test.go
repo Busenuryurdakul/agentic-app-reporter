@@ -134,3 +134,12 @@ func TestClient_HealthAuthFailed(t *testing.T) {
 	assert.False(t, h.Healthy)
 	assert.Contains(t, h.Message, "authentication")
 }
+
+func TestNew_HTTPClientTimeoutFromConfig(t *testing.T) {
+	c, err := New(Config{
+		BaseURL:        "http://example.com/v1",
+		TimeoutSeconds: 90,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 90*time.Second, c.httpClient.Timeout)
+}

@@ -56,9 +56,10 @@ func newInnerProvider(name string, cfg config.LLMConfig) (domainllm.LLMProvider,
 		return mock.New(mock.WithModel(cfg.Model)), nil
 	case domainllm.ProviderGemma:
 		return gemma.New(gemma.Config{
-			BaseURL: cfg.BaseURL,
-			APIKey:  cfg.APIKey,
-			Model:   cfg.Model,
+			BaseURL:        cfg.BaseURL,
+			APIKey:         cfg.APIKey,
+			Model:          cfg.Model,
+			TimeoutSeconds: cfg.TimeoutSeconds,
 		})
 	default:
 		return nil, fmt.Errorf(

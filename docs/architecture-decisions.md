@@ -88,8 +88,22 @@ metadata (`provider_name`, `model_name`, `source_fingerprint`, status, approval 
 ## Deployment
 
 - Frontend → Vercel (`frontend/`)
-- Backend → Render (`backend/`)
+- Backend → Render (`backend/`) — LLM via **external** OpenAI-compatible endpoint (`LLM_PROVIDER=gemma`)
 - Database → PostgreSQL
+- Local GPU MLC → `backend/deployments/mlc-llm/` Docker image (`make compose-up-mlc-gpu`)
+
+---
+
+## Stage 3 — MLC Docker + Render external LLM
+
+**Status:** Done — **hybrid strategy adopted** (`deployments/LLM_HYBRID.md`)
+
+- Modes A–E: mock / HF / Compose mock / GPU MLC / Render external
+- Custom MLC Dockerfile (`deployments/mlc-llm/`)
+- Render blueprint: `LLM_PROVIDER=gemma`, external URL via dashboard
+- `make llm-hybrid` quick reference
+
+Plan: `STAGE3_MLC_PLAN.md`
 
 ---
 

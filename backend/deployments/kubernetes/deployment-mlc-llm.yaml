@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlc-llm
+  namespace: masterfabric
+  labels:
+    app.kubernetes.io/name: mlc-llm
+    app.kubernetes.io/component: llm
+spec:
+  selector:
+    app.kubernetes.io/name: mlc-llm
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlc-llm
+  namespace: masterfabric
+  labels:
+    app.kubernetes.io/name: mlc-llm
+    app.kubernetes.io/component: llm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mlc-llm
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mlc-llm
+        app.kubernetes.io/component: llm
+    spec:
+      containers:
+        - name: mlc-llm
+          image: masterfabric-mlc-llm:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: MLC_MODEL
+              value: HF://mlc-ai/gemma-2b-it-q4f16_1-MLC
+            - name: MLC_HOST
+              value: "0.0.0.0"
+            - name: MLC_PORT
+              value: "8080"
+            - name: MLC_MODE
+              value: server
+            - name: MLC_DEVICE
+              value: auto
+          resources:
+            limits:
+              nvidia.com/gpu: "1"
+            requests:
+              nvidia.com/gpu: "1"
+          readinessProbe:
+            httpGet:
+              path: /v1/models
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 20
+          livenessProbe:
+            httpGet:
+              path: /v1/models
+              port: http
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5

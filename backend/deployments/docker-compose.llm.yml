@@ -1,22 +1,39 @@
-# Optional overlay: real MLC LLM server (GPU). Use with:
-#   docker compose -f deployments/docker-compose.yml -f deployments/docker-compose.llm.yml up -d
+# GPU overlay: real MLC-LLM server (replaces mock-llm build when mlc-gpu profile is active).
 #
-# Requires NVIDIA Container Toolkit for GPU. Without GPU, the default mock-llm
-# service in docker-compose.yml is used instead.
+# Requires NVIDIA Container Toolkit. Without GPU, use mock stack only:
+#   make compose-up-full
+#
+# With GPU:
+#   make compose-up-mlc-gpu
+#
+# Manual:
+#   docker compose -f deployments/docker-compose.yml -f deployments/docker-compose.llm.yml \
+#     --profile stack --profile mlc-gpu up -d --build
+
 services:
   mlc-llm:
-    image: mlcai/mlc-llm:latest
+    profiles: ["stack", "mlc-gpu"]
+    build:
+      context: ./mlc-llm
+      dockerfile: Dockerfile
+    image: masterfabric-mlc-llm:latest
     container_name: masterfabric-mlc-llm
-    profiles:
-      - mlc-gpu
     ports:
       - "${MLC_HOST_BIND:-127.0.0.1}:8081:8080"
+    environment:
+      MLC_MODEL: ${MLC_MODEL:-HF://mlc-ai/gemma-2b-it-q4f16_1-MLC}
+      MLC_HOST: "0.0.0.0"
+      MLC_PORT: "8080"
+      MLC_MODE: ${MLC_MODE:-local}
+      MLC_DEVICE: ${MLC_DEVICE:-auto}
+    volumes:
+      - mlc-cache:/root/.cache/mlc_llm
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O- http://localhost:8080/health || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:8080/v1/models || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 10
-      start_period: 120s
+      start_period: 180s
     deploy:
       resources:
         reservations:
@@ -24,3 +41,12 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+
+  api:
+    profiles: ["stack", "mlc-gpu"]
+    environment:
+      LLM_MODEL: ${MLC_MODEL:-HF://mlc-ai/gemma-2b-it-q4f16_1-MLC}
+      LLM_TIMEOUT_SECONDS: "120"
+
+volumes:
+  mlc-cache:

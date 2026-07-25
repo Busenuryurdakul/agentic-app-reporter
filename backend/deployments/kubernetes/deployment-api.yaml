@@ -57,7 +57,7 @@ spec:
             - name: LLM_BASE_URL
               value: http://mlc-llm:8080/v1
             - name: LLM_MODEL
-              value: mock-mlc-model
+              value: HF://mlc-ai/gemma-2b-it-q4f16_1-MLC
             - name: LLM_TIMEOUT_SECONDS
               value: "120"
             - name: LLM_MAX_RETRIES

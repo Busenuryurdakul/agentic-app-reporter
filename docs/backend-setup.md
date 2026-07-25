@@ -11,11 +11,18 @@ Local product copy: `backend/` (no nested `.git`)
 cd backend
 cp .env.example.studio .env
 ./dev.sh infra && ./dev.sh migrate
-go run scripts/seed.go
+make seed              # roles + studio-default questionnaire
 make run
 ```
 
+Production deploy: [`deployment.md`](deployment.md)
+
 Pair with frontend:
+
+```bash
+cd frontend
+cp .env.example .env.local
+```
 
 ```env
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080

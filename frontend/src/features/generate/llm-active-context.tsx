@@ -6,7 +6,6 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -21,21 +20,17 @@ type LlmActiveContextValue = {
 const LlmActiveContext = createContext<LlmActiveContextValue | null>(null);
 
 export function LlmActiveProvider({ children }: { children: ReactNode }) {
-  const countRef = useRef(0);
-  const [, setTick] = useState(0);
-  const bump = useCallback(() => setTick((n) => n + 1), []);
+  const [count, setCount] = useState(0);
 
   const register = useCallback(() => {
-    countRef.current += 1;
-    bump();
-  }, [bump]);
+    setCount((c) => c + 1);
+  }, []);
 
   const unregister = useCallback(() => {
-    countRef.current = Math.max(0, countRef.current - 1);
-    bump();
-  }, [bump]);
+    setCount((c) => Math.max(0, c - 1));
+  }, []);
 
-  const isActive = countRef.current > 0;
+  const isActive = count > 0;
 
   usePreventUnload(isActive);
 

@@ -38,9 +38,14 @@ func main() {
 		fmt.Printf("  ✓ Backfilled org_admin for %d organization member(s)\n", assigned)
 	}
 
-	if err := SeedQuestionnaires(ctx, db); err != nil {
+	count, err := pgBootstrap.SeedQuestionnaires(ctx, db)
+	if err != nil {
 		log.Fatalf("Failed to seed questionnaires: %v", err)
 	}
+	if err := pgBootstrap.VerifyStudioDefault(ctx, db); err != nil {
+		log.Fatalf("Questionnaire verification failed: %v", err)
+	}
+	fmt.Printf("  ✓ Seeded questionnaire set: %s (%d questions)\n", pgBootstrap.StudioDefaultSetKey, count)
 
 	fmt.Println("✅ Database seeded successfully!")
 }

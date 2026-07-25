@@ -10,6 +10,6 @@ npm install
 npm run dev
 ```
 
-Requires backend at `NEXT_PUBLIC_API_BASE_URL` (default `http://localhost:8080`).
+Requires backend at `NEXT_PUBLIC_API_BASE_URL` (see `.env.example`).
 
-Monorepo docs: [`../docs`](../docs) · Backend: [`../backend`](../backend)
+Production deploy: [`../docs/deployment.md`](../docs/deployment.md)

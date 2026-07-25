@@ -1,5 +1,6 @@
 /**
  * Verify Hugging Face / OpenAI-compatible LLM wiring (reads backend/.env locally).
+ * Prefer: node ./scripts/verify_hybrid_llm.mjs  or  make verify-hybrid
  * Usage (from backend/): node ./scripts/verify_llm.mjs
  */
 import fs from "node:fs";

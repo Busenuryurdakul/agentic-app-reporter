@@ -32,10 +32,11 @@ type Client struct {
 
 // Config configures a Gemma HTTP client.
 type Config struct {
-	BaseURL    string
-	APIKey     string
-	Model      string
-	HTTPClient *http.Client
+	BaseURL        string
+	APIKey         string
+	Model          string
+	TimeoutSeconds int
+	HTTPClient     *http.Client
 }
 
 // New creates a Gemma provider client. BaseURL is required (e.g. http://localhost:11434/v1).
@@ -50,7 +51,11 @@ func New(cfg Config) (*Client, error) {
 	}
 	httpClient := cfg.HTTPClient
 	if httpClient == nil {
-		httpClient = &http.Client{Timeout: defaultHTTPTimeout}
+		timeout := defaultHTTPTimeout
+		if cfg.TimeoutSeconds > 0 {
+			timeout = time.Duration(cfg.TimeoutSeconds) * time.Second
+		}
+		httpClient = &http.Client{Timeout: timeout}
 	}
 	return &Client{
 		baseURL:    base,

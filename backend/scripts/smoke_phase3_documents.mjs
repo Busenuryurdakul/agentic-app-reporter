@@ -83,8 +83,9 @@ try {
   ok("foreign org ready", orgBId);
 
   const health = await api("GET", "/llm/health", { token, orgId });
-  if (health.data?.healthy && health.data?.provider === "mock") {
-    ok("llm health", `${health.data.provider} healthy=${health.data.healthy}`);
+  const provider = health.data?.provider;
+  if (health.data?.healthy && (provider === "mock" || provider === "gemma")) {
+    ok("llm health", `${provider} healthy=${health.data.healthy}`);
   } else {
     fail("llm health", JSON.stringify(health.data));
   }

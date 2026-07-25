@@ -75,6 +75,7 @@ services:
         condition: service_healthy
 
   # --- Phase 5 stack (profile: stack) ---
+  # Default: mock-llm (no GPU). Real MLC GPU overlay: make compose-up-mlc-gpu
   mlc-llm:
     profiles: ["stack"]
     build:

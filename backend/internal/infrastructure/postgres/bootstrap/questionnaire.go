@@ -1,8 +1,4 @@
-package main
-
-// seed_questionnaire.go - seeds the default "studio-default" questionnaire
-// set used by the AI Development Configuration Studio. Invoked from
-// seed.go's main().
+package bootstrap
 
 import (
 	"context"
@@ -14,45 +10,95 @@ import (
 	"github.com/masterfabric-go/masterfabric/internal/domain/questionnaire/seedcatalog"
 )
 
-// studioDefaultSetKey is the well-known key of the built-in questionnaire set.
-const studioDefaultSetKey = "studio-default"
+// StudioDefaultSetKey is the well-known key of the built-in questionnaire set.
+const StudioDefaultSetKey = "studio-default"
 
 // SeedQuestionnaires upserts the built-in "studio-default" questionnaire set,
 // its questions, and options. Matching is by stable question key so existing
 // answer rows keep their question_id. Questions not present in the catalog are
 // deactivated (never deleted). Safe to run multiple times.
-func SeedQuestionnaires(ctx context.Context, db *pgxpool.Pool) error {
+func SeedQuestionnaires(ctx context.Context, db *pgxpool.Pool) (int, error) {
 	questions, err := seedcatalog.LoadStudioDefault()
 	if err != nil {
-		return err
+		return 0, fmt.Errorf("load studio-default catalog: %w", err)
 	}
 
-	setID, err := upsertQuestionnaireSet(ctx, db, studioDefaultSetKey,
+	setID, err := upsertQuestionnaireSet(ctx, db, StudioDefaultSetKey,
 		"AI Development Configuration Studio - Varsayılan Soru Seti",
 		"Proje profili ve teknik yapılandırma bilgilerini toplamak için varsayılan soru seti.",
 	)
 	if err != nil {
-		return fmt.Errorf("upsert questionnaire set: %w", err)
+		return 0, fmt.Errorf("upsert questionnaire set %q: %w", StudioDefaultSetKey, err)
 	}
 
 	activeKeys := make([]string, 0, len(questions))
 	for _, q := range questions {
 		questionID, err := upsertQuestionByKey(ctx, db, setID, q)
 		if err != nil {
-			return fmt.Errorf("upsert question %q: %w", q.Key, err)
+			return 0, fmt.Errorf("upsert question %q: %w", q.Key, err)
 		}
 		activeKeys = append(activeKeys, q.Key)
 
 		if err := replaceQuestionOptions(ctx, db, questionID, q.Options); err != nil {
-			return fmt.Errorf("replace options for question %q: %w", q.Key, err)
+			return 0, fmt.Errorf("replace options for question %q: %w", q.Key, err)
 		}
 	}
 
 	if err := deactivateMissingQuestions(ctx, db, setID, activeKeys); err != nil {
-		return fmt.Errorf("deactivate obsolete questions: %w", err)
+		return 0, fmt.Errorf("deactivate obsolete questions in %q: %w", StudioDefaultSetKey, err)
 	}
 
-	fmt.Printf("  ✓ Seeded questionnaire set: %s (%d questions)\n", studioDefaultSetKey, len(questions))
+	return len(questions), nil
+}
+
+// VerifyStudioDefault confirms the studio-default set exists, is active/default,
+// and has the expected number of active questions from the built-in catalog.
+func VerifyStudioDefault(ctx context.Context, db *pgxpool.Pool) error {
+	catalog, err := seedcatalog.LoadStudioDefault()
+	if err != nil {
+		return fmt.Errorf("load studio-default catalog: %w", err)
+	}
+	expectedCount := len(catalog)
+	if expectedCount == 0 {
+		return fmt.Errorf("studio-default catalog is empty")
+	}
+
+	var setID uuid.UUID
+	var active, isDefault bool
+	err = db.QueryRow(ctx, `
+		SELECT id, active, is_default
+		FROM questionnaire_sets
+		WHERE key = $1
+	`, StudioDefaultSetKey).Scan(&setID, &active, &isDefault)
+	if err == pgx.ErrNoRows {
+		return fmt.Errorf(
+			"questionnaire set %q not found — run: go run ./cmd/seed-questionnaire (or /app/seed-questionnaire on Render)",
+			StudioDefaultSetKey,
+		)
+	}
+	if err != nil {
+		return fmt.Errorf("query questionnaire set %q: %w", StudioDefaultSetKey, err)
+	}
+	if !active {
+		return fmt.Errorf("questionnaire set %q exists but is not active", StudioDefaultSetKey)
+	}
+	if !isDefault {
+		return fmt.Errorf("questionnaire set %q exists but is_default=false", StudioDefaultSetKey)
+	}
+
+	var activeQuestionCount int
+	if err := db.QueryRow(ctx, `
+		SELECT COUNT(*) FROM questions WHERE set_id = $1 AND active = TRUE
+	`, setID).Scan(&activeQuestionCount); err != nil {
+		return fmt.Errorf("count active questions for %q: %w", StudioDefaultSetKey, err)
+	}
+	if activeQuestionCount < expectedCount {
+		return fmt.Errorf(
+			"questionnaire set %q has %d active questions, expected %d — re-run seed-questionnaire",
+			StudioDefaultSetKey, activeQuestionCount, expectedCount,
+		)
+	}
+
 	return nil
 }
 
@@ -134,9 +180,6 @@ func deactivateMissingQuestions(ctx context.Context, db *pgxpool.Pool, setID uui
 	return err
 }
 
-// replaceQuestionOptions deletes and re-inserts a question's options, which
-// keeps this seed idempotent without requiring a unique constraint on
-// (question_id, value).
 func replaceQuestionOptions(ctx context.Context, db *pgxpool.Pool, questionID uuid.UUID, options []seedcatalog.Option) error {
 	if _, err := db.Exec(ctx, `DELETE FROM question_options WHERE question_id = $1`, questionID); err != nil {
 		return err

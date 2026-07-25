@@ -182,10 +182,17 @@ try {
   }
 
   const llmHealth = await probeLLMHealth();
-  pass(
-    "llm provider health API",
-    `${llmHealth?.provider || "unknown"} healthy=${llmHealth?.healthy}`,
-  );
+  if (llmHealth?.healthy) {
+    pass(
+      "llm provider health API",
+      `${llmHealth?.provider || "unknown"} healthy=${llmHealth?.healthy}`,
+    );
+  } else {
+    fail(
+      "llm provider health API",
+      JSON.stringify(llmHealth),
+    );
+  }
 
   const metricsAfterLLM = await get(`${API_BASE}/metrics`);
   if (
@@ -222,8 +229,13 @@ try {
   }
   pass("alertmanager status API");
 
-  await get(`${MLC_BASE}/health`);
-  pass("mlc-llm mock health");
+  try {
+    await get(`${MLC_BASE}/health`);
+    pass("mlc-llm endpoint health (/health)");
+  } catch {
+    await get(`${MLC_BASE}/v1/models`);
+    pass("mlc-llm endpoint health (/v1/models)");
+  }
 
   await get(`${GRAFANA_BASE}/api/health`);
   pass("grafana health");

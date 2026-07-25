@@ -1,4 +1,4 @@
-.PHONY: build run test lint migrate migrate-down docker-up docker-down compose-up-full compose-monitoring-native compose-scale-api k8s-apply k8s-delete clean help
+.PHONY: build run test lint migrate migrate-down docker-up docker-down compose-up-full compose-up-mlc-gpu compose-down-mlc-gpu compose-down-full compose-monitoring-native compose-scale-api verify-mlc verify-hybrid llm-hybrid k8s-apply k8s-delete clean help
 
 APP_NAME := masterfabric
 BUILD_DIR := bin
@@ -6,7 +6,9 @@ MAIN_PATH := ./cmd/server
 MIGRATION_DIR := internal/infrastructure/postgres/migrations
 DB_DSN ?= postgres://masterfabric:masterfabric@localhost:5432/masterfabric?sslmode=disable
 COMPOSE_FILE := deployments/docker-compose.yml
+COMPOSE_LLM_FILE := deployments/docker-compose.llm.yml
 COMPOSE := docker compose -f $(COMPOSE_FILE)
+COMPOSE_GPU := docker compose -f $(COMPOSE_FILE) -f $(COMPOSE_LLM_FILE)
 K8S_DIR := deployments/kubernetes
 
 ## help: Show this help message
@@ -73,14 +75,53 @@ compose-up-full:
 	@echo "Starting full Phase 5 stack..."
 	$(COMPOSE) --profile stack up -d --build --scale api=2
 
+## compose-up-mlc-gpu: Full stack with real MLC-LLM (NVIDIA GPU required)
+compose-up-mlc-gpu:
+	@echo "Starting GPU MLC stack (requires NVIDIA Container Toolkit)..."
+	$(COMPOSE_GPU) --profile stack --profile mlc-gpu up -d --build --scale api=2
+
+## compose-down-mlc-gpu: Stop GPU MLC stack
+compose-down-mlc-gpu:
+	$(COMPOSE_GPU) --profile stack --profile mlc-gpu down
+
+## verify-mlc: Probe local MLC/mock endpoint (:8081)
+verify-mlc:
+	node ./scripts/verify_mlc_compose.mjs
+
+## verify-hybrid: Verify LLM wiring from .env (mock / HF / local MLC)
+verify-hybrid:
+	node ./scripts/check-no-browser-llm.mjs
+	node ./scripts/verify_hybrid_llm.mjs
+
+## smoke-compose-full: Full Compose integration smoke (infra + API + observe + monitoring)
+smoke-compose-full:
+	node ./scripts/smoke_compose_full.mjs
+	node ./scripts/smoke_phase3_documents.mjs
+	node ./scripts/smoke_phase4_release.mjs
+	node ./scripts/smoke_phase5_compose.mjs
+
 ## compose-scale-api: Scale API replicas (default 3)
 compose-scale-api:
 	@echo "Scaling API replicas..."
 	$(COMPOSE) --profile stack up -d --scale api=3
 
-## compose-down-full: Stop full stack including profile services
+## compose-down-full: Stop mock or GPU stack (whichever is running)
 compose-down-full:
+	-$(COMPOSE_GPU) --profile stack --profile mlc-gpu down
 	$(COMPOSE) --profile stack down
+
+## llm-hybrid: Print hybrid LLM mode guide
+llm-hybrid:
+	@echo "Hybrid LLM guide: deployments/LLM_HYBRID.md"
+	@echo ""
+	@echo "  Mode A — fast dev:        LLM_PROVIDER=mock  +  make run"
+	@echo "  Mode B — HF external:   LLM_PROVIDER=gemma + HF URL  +  make run"
+	@echo "  Mode C — compose mock:  make compose-up-full"
+	@echo "  Mode D — local MLC GPU: make compose-up-mlc-gpu"
+	@echo "  Mode E — Render prod:    see deployments/render-external-llm.md"
+	@echo ""
+	@echo "  Verify hybrid (from .env): make verify-hybrid"
+	@echo "  Verify MLC endpoint:       make verify-mlc"
 
 ## compose-monitoring-native: Prometheus + Grafana + Alertmanager scraping host API (:8080)
 ## Use when running backend\\bin\\server.exe natively on Windows/macOS with Docker Desktop.
@@ -116,3 +157,8 @@ clean:
 seed:
 	@echo "Seeding database..."
 	go run ./scripts
+
+## seed-questionnaire: Idempotent studio-default questionnaire seed (production-safe)
+seed-questionnaire:
+	@echo "Seeding studio-default questionnaire..."
+	go run ./cmd/seed-questionnaire
