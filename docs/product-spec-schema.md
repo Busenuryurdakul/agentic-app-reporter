@@ -169,20 +169,36 @@ Maksimum skor: **100**
 
 ---
 
-## PEFT veri export (sonraki adım)
+## PEFT veri export (CLI — uygulandı)
 
-Onaylı Product Spec'ler dataset satırı olarak:
+Onaylı `product_spec` belgeleri offline JSONL export ile PEFT eğitim verisine dönüştürülür:
+
+```bash
+go run ./cmd/export-peft-dataset --org-id=<ORG_UUID> --dry-run --verbose
+make export-peft-dataset ORG_ID=<ORG_UUID> OUT_DIR=./peft-export
+node ./scripts/smoke_peft_seed.mjs --no-sql-patch
+node ./scripts/smoke_peft_export.mjs --org-id=<ORG_UUID>
+```
+
+JSONL satır şeması (`messages`: system / user / assistant):
 
 ```json
 {
-  "document_type": "product_spec",
-  "language": "tr",
-  "input_context_fingerprint": "…",
-  "output_markdown": "…"
+  "messages": [
+    { "role": "system", "content": "…" },
+    { "role": "user", "content": "…" },
+    { "role": "assistant", "content": "…" }
+  ],
+  "metadata": {
+    "document_type": "product_spec",
+    "language": "tr",
+    "source_fingerprint": "…",
+    "export_version": "1"
+  }
 }
 ```
 
-Export script henüz uygulanmadı; implementasyon planı: [peft-dataset-export-phase-ab.md](./issues/peft-dataset-export-phase-ab.md)
+Detay: [peft-dataset-export-phase-ab.md](./issues/peft-dataset-export-phase-ab.md), [backend/STUDIO.md](../backend/STUDIO.md).
 
 ---
 

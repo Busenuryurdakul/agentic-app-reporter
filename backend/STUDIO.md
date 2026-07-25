@@ -167,6 +167,9 @@ Exit codes: `0` ok, `2` no rows exported, `3` DB error.
 Plan: `docs/issues/peft-dataset-export-phase-ab.md`, schema: `docs/product-spec-schema.md`.
 
 PEFT integration smoke: `node ./scripts/smoke_peft_export.mjs` (Phase D; requires approved `product_spec` rows).
+Seed without SQL patch: `node ./scripts/smoke_peft_seed.mjs --no-sql-patch`.
+
+Render production deploy: `node ./scripts/trigger_render_deploy.mjs` then `node ./scripts/verify_render_deploy.mjs`.
 
 ### Smoke
 

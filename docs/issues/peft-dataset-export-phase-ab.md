@@ -202,30 +202,30 @@ node ./scripts/smoke_peft_export.mjs
 
 ## Faz D — Postgres integration smoke
 
-**Durum:** Kısmi — altyapı OK, onaylı `product_spec` adayı yok
+**Durum:** Done (2026-07-25)
 
 | Kontrol | Sonuç |
 |---------|--------|
-| Migration 00018 | Uygulandı |
+| Migration 00018 | Uygulandı (local + Render entrypoint goose up) |
 | Index `idx_generated_documents_peft_export` | Var |
-| PostgreSQL | `masterfabric-postgres` healthy |
-| Organizations | 21 |
-| Workspaces | 9 |
-| Approved `product_spec` | **0** |
-| CLI dry-run (DB pipeline) | OK (`candidates=0`, exit 2) |
-| Full JSONL export | **Atlandı** (dry-run exported=0) |
+| Seed (`smoke_peft_seed.mjs --no-sql-patch`) | PASS — API `product_spec` + mock LLM |
+| CLI dry-run + full export | PASS (`exported=1`) |
+| Integration tests | `go test -tags=integration ./internal/infrastructure/postgres/document/...` |
 
-Smoke: `backend/scripts/smoke_peft_export.mjs`
+Smoke: `backend/scripts/smoke_peft_export.mjs`, `backend/scripts/smoke_peft_seed.mjs`
+
+Render deploy: `node ./scripts/trigger_render_deploy.mjs` → `node ./scripts/verify_render_deploy.mjs`
 
 ---
 
 ## PR checklist
 
-- [ ] `go test ./internal/domain/document/... ./internal/application/datasetexport/...`
-- [ ] `go vet ./...`
-- [ ] Mock'lar güncellendi (generation, export, observe test paketleri)
-- [ ] `docs/product-spec-schema.md` → JSONL bölümüne link
-- [ ] `.gitignore` → `peft-export/` (Faz C)
+- [x] `go test ./internal/domain/document/... ./internal/application/datasetexport/...`
+- [x] `go vet ./...`
+- [x] Mock'lar güncellendi (generation, export, observe test paketleri)
+- [x] `docs/product-spec-schema.md` → JSONL bölümüne link
+- [x] `.gitignore` → `peft-export/` (Faz C)
+- [x] Faz D smoke + Render/Vercel post-merge fix
 
 ---
 
