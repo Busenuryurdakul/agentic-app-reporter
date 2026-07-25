@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strings"
 
+	docModel "github.com/masterfabric-go/masterfabric/internal/domain/document/model"
+	"github.com/masterfabric-go/masterfabric/internal/domain/document/productspec"
 	"github.com/masterfabric-go/masterfabric/internal/domain/llm"
 )
 
@@ -17,12 +19,19 @@ func NewPromptBuilder() *PromptBuilder {
 }
 
 // Build produces system + user prompts. It never logs prompt bodies.
-func (b *PromptBuilder) Build(ctx *WorkspaceLLMContext) (llm.GenerateRequest, error) {
+func (b *PromptBuilder) Build(ctx *WorkspaceLLMContext, documentType string) (llm.GenerateRequest, error) {
 	if ctx == nil {
 		return llm.GenerateRequest{}, fmt.Errorf("workspace LLM context is required")
 	}
 
 	lang := normalizeDocumentLanguage(ctx.Language)
+	if docModel.NormalizeDocumentType(documentType) == docModel.DocumentTypeProductSpec {
+		return llm.GenerateRequest{
+			SystemPrompt: buildProductSpecSystemPrompt(lang),
+			UserPrompt:   buildProductSpecUserPrompt(ctx, lang),
+		}, nil
+	}
+
 	return llm.GenerateRequest{
 		SystemPrompt: buildSystemPrompt(lang),
 		UserPrompt:   buildUserPrompt(ctx, lang),
@@ -149,6 +158,54 @@ func buildUserPrompt(ctx *WorkspaceLLMContext, lang string) string {
 		"Produce a single Markdown configuration document from this context.\n",
 	))
 
+	return b.String()
+}
+
+func buildProductSpecSystemPrompt(lang string) string {
+	if lang == "en" {
+		return strings.TrimSpace(`
+You are a product specification assistant for AI Development Configuration Studio.
+Write a structured Markdown product spec from the provided workspace context.
+Rules:
+- Output Markdown only. Use the required numbered H2 sections exactly as listed in the user message.
+- Do not invent secrets, API keys, tokens, or credentials.
+- Ground content in profile and questionnaire answers (e.g. uses_mcp, uses_ai); mark gaps when missing.
+- Keep decisions platform-independent and useful for product and engineering teams.
+`)
+	}
+
+	return strings.TrimSpace(`
+Sen AI Development Configuration Studio için ürün spesifikasyonu asistanısın.
+Verilen çalışma alanı bağlamından yapılandırılmış bir Markdown ürün spesifikasyonu yaz.
+Kurallar:
+- Yalnızca Markdown üret. Kullanıcı mesajındaki numaralı H2 bölümlerini aynen kullan.
+- Gizli anahtar, token, API key veya kimlik bilgisi uydurma.
+- Profil ve anket cevaplarına dayan (ör. uses_mcp, uses_ai); eksik bilgileri belirt.
+- Kararları platform bağımsız tut; ürün ve mühendislik ekipleri için kullanışlı olsun.
+`)
+}
+
+func buildProductSpecUserPrompt(ctx *WorkspaceLLMContext, lang string) string {
+	base := buildUserPrompt(ctx, lang)
+	var b strings.Builder
+	b.WriteString(base)
+	b.WriteString("\n")
+	if lang == "en" {
+		b.WriteString("Document type: product_spec\n\n")
+		b.WriteString("## Required sections (use these H2 headings in order)\n\n")
+	} else {
+		b.WriteString("Belge tipi: product_spec\n\n")
+		b.WriteString("## Zorunlu bölümler (bu H2 başlıklarını sırayla kullan)\n\n")
+	}
+	for _, heading := range productspec.AllHeadings(lang) {
+		b.WriteString(heading)
+		b.WriteString("\n")
+	}
+	b.WriteString("\n")
+	b.WriteString(label(lang,
+		"Bu bağlama göre tek bir ürün spesifikasyonu Markdown belgesi üret.\n",
+		"Produce a single product specification Markdown document from this context.\n",
+	))
 	return b.String()
 }
 

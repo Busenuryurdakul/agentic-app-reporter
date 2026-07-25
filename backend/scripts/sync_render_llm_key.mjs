@@ -14,7 +14,8 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const envPath = path.join(__dirname, "..", ".env");
-const renderKey = process.env.RENDER_API_KEY?.trim();
+const fileEnv = loadEnv(envPath);
+const renderKey = (process.env.RENDER_API_KEY || fileEnv.RENDER_API_KEY || "").trim();
 const serviceName = process.env.RENDER_SERVICE_NAME || "agentic-app-reporter-api";
 const serviceIdOverride = process.env.RENDER_SERVICE_ID?.trim();
 
@@ -33,10 +34,10 @@ function loadEnv(file) {
 
 if (!renderKey) {
   console.error("RENDER_API_KEY is required (Render Dashboard → Account Settings → API Keys)");
+  console.error("Set env RENDER_API_KEY or add RENDER_API_KEY=... to backend/.env");
   process.exit(1);
 }
 
-const fileEnv = loadEnv(envPath);
 const llmApiKey = (fileEnv.LLM_API_KEY || process.env.LLM_API_KEY || "").trim();
 if (!llmApiKey) {
   console.error("LLM_API_KEY not found in backend/.env or environment");

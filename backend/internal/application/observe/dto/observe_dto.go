@@ -47,10 +47,11 @@ type ProviderSummary struct {
 
 // DocumentQuality mirrors generation quality heuristics for observe recent rows.
 type DocumentQuality struct {
-	HasHeading       bool `json:"has_heading"`
-	MinLengthOK      bool `json:"min_length_ok"`
-	LanguageDeclared bool `json:"language_declared"`
-	QualityScore     int  `json:"quality_score"`
+	HasHeading        bool `json:"has_heading"`
+	MinLengthOK       bool `json:"min_length_ok"`
+	LanguageDeclared  bool `json:"language_declared"`
+	SectionCoverageOK bool `json:"section_coverage_ok,omitempty"`
+	QualityScore      int  `json:"quality_score"`
 }
 
 // RecentDocumentSummary is a body-less document row for observe recent lists.

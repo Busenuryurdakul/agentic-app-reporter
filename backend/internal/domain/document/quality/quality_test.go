@@ -50,5 +50,20 @@ func TestEvaluate_MinLengthUsesRunes(t *testing.T) {
 	ok := strings.Repeat("ğ", 200)
 	assert.False(t, Evaluate(short, "").MinLengthOK)
 	assert.True(t, Evaluate(ok, "").MinLengthOK)
-	assert.Equal(t, 40, Evaluate(ok, "").QualityScore)
+	assert.Equal(t, 30, Evaluate(ok, "").QualityScore)
+}
+
+func TestEvaluateForType_ProductSpecSectionCoverage(t *testing.T) {
+	t.Parallel()
+	body := strings.Repeat("x", 220) + `
+## 1. Özet ve hedef kullanıcı
+## 2. Problem tanımı ve kapsam
+## 3. Ürün gereksinimleri
+## 4. Mimari kararlar
+## 5. AI / LLM kullanımı
+## 6. MCP ve otomasyon entegrasyonları
+`
+	s := EvaluateForType(body, "tr", "product_spec")
+	assert.True(t, s.SectionCoverageOK)
+	assert.Equal(t, 100, s.QualityScore)
 }

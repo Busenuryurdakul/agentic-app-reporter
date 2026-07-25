@@ -273,6 +273,11 @@ export const tr = {
       "İsteğe bağlı başlık ve dil seçebilirsiniz. Profil veya anket verisi buradan gönderilmez.",
     titleField: "Belge başlığı",
     titlePlaceholder: "Örn. AI Geliştirme Yapılandırması",
+    documentTypeField: "Belge tipi",
+    documentTypeStudio: "Yapılandırma belgesi (genel)",
+    documentTypeProductSpec: "Ürün spesifikasyonu (Product Spec)",
+    documentTypeHint:
+      "Product Spec, 9 bölümlü yapılandırılmış ürün belgesi üretir (MCP, mimari, gereksinimler).",
     languageField: "Belge dili",
     languageWorkspace: "Proje tercihi",
     create: "Belge üret",
