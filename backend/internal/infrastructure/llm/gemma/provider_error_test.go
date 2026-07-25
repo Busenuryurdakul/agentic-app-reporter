@@ -20,6 +20,7 @@ func TestClassifyProviderHTTPStatus(t *testing.T) {
 		{403, domainErr.ProviderCodeAuth, domainErr.ErrBadGateway},
 		{404, domainErr.ProviderCodeNotFound, domainErr.ErrBadGateway},
 		{429, domainErr.ProviderCodeRateLimited, domainErr.ErrRateLimited},
+		{402, domainErr.ProviderCodeQuota, domainErr.ErrBadGateway},
 		{502, domainErr.ProviderCodeUpstream, domainErr.ErrInternal},
 	}
 

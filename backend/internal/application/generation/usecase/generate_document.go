@@ -17,22 +17,29 @@ import (
 	"github.com/masterfabric-go/masterfabric/internal/shared/telemetry"
 )
 
+// ProviderResolver resolves the LLM provider for an organization before generation.
+type ProviderResolver interface {
+	Resolve(ctx context.Context, orgID uuid.UUID) (llm.LLMProvider, error)
+}
+
 // GenerateDocumentUseCase builds workspace context, calls LLMProvider, and persists the document.
 type GenerateDocumentUseCase struct {
-	contextBuilder *WorkspaceContextBuilder
-	promptBuilder  *PromptBuilder
-	provider       llm.LLMProvider
-	docRepo        docRepo.DocumentRepository
-	gate           GenerationLocker
-	llmEnabled     bool
-	logger         *slog.Logger
+	contextBuilder     *WorkspaceContextBuilder
+	promptBuilder      *PromptBuilder
+	providerResolver   ProviderResolver
+	defaultProvider    llm.LLMProvider
+	docRepo            docRepo.DocumentRepository
+	gate               GenerationLocker
+	llmEnabled         bool
+	logger             *slog.Logger
 }
 
 // NewGenerateDocumentUseCase creates a GenerateDocumentUseCase.
 func NewGenerateDocumentUseCase(
 	contextBuilder *WorkspaceContextBuilder,
 	promptBuilder *PromptBuilder,
-	provider llm.LLMProvider,
+	providerResolver ProviderResolver,
+	defaultProvider llm.LLMProvider,
 	docRepo docRepo.DocumentRepository,
 	gate GenerationLocker,
 	llmEnabled bool,
@@ -45,13 +52,14 @@ func NewGenerateDocumentUseCase(
 		gate = NewGenerationGate()
 	}
 	return &GenerateDocumentUseCase{
-		contextBuilder: contextBuilder,
-		promptBuilder:  promptBuilder,
-		provider:       provider,
-		docRepo:        docRepo,
-		gate:           gate,
-		llmEnabled:     llmEnabled,
-		logger:         logger,
+		contextBuilder:   contextBuilder,
+		promptBuilder:    promptBuilder,
+		providerResolver: providerResolver,
+		defaultProvider:  defaultProvider,
+		docRepo:          docRepo,
+		gate:             gate,
+		llmEnabled:       llmEnabled,
+		logger:           logger,
 	}
 }
 
@@ -64,7 +72,7 @@ func (uc *GenerateDocumentUseCase) Execute(
 	if !uc.llmEnabled {
 		return nil, domainErr.New(domainErr.ErrServiceUnavailable, "LLM is disabled", nil)
 	}
-	if uc.provider == nil {
+	if uc.providerResolver == nil && uc.defaultProvider == nil {
 		return nil, domainErr.New(domainErr.ErrServiceUnavailable, "LLM provider is not configured", nil)
 	}
 	acquired, err := uc.gate.TryBegin(ctx, workspaceID)
@@ -90,6 +98,11 @@ func (uc *GenerateDocumentUseCase) Execute(
 		return nil, err
 	}
 
+	provider, err := uc.resolveProvider(ctx, wsCtx.OrganizationID)
+	if err != nil {
+		return nil, err
+	}
+
 	prompt, err := uc.promptBuilder.Build(wsCtx, docType)
 	if err != nil {
 		return nil, domainErr.New(domainErr.ErrInternal, "failed to build prompt", err)
@@ -103,24 +116,25 @@ func (uc *GenerateDocumentUseCase) Execute(
 
 	start := time.Now()
 	telemetry.IncLLMInflight(ctx)
-	genResp, err := uc.provider.Generate(ctx, prompt)
+	genResp, err := provider.Generate(ctx, prompt)
 	duration := time.Since(start)
 	telemetry.DecLLMInflight(ctx)
 	status := "success"
 	if err != nil {
 		status = "error"
 	}
-	telemetry.RecordLLMGeneration(ctx, uc.provider.Name(), status, duration.Seconds())
+	telemetry.RecordLLMGeneration(ctx, provider.Name(), status, duration.Seconds())
 	// Log metadata only — never prompts, API keys, or full bodies.
 	uc.logger.Info("llm generate completed",
-		"provider", uc.provider.Name(),
+		"provider", provider.Name(),
+		"organization_id", wsCtx.OrganizationID.String(),
 		"workspace_id", workspaceID.String(),
 		"duration_ms", duration.Milliseconds(),
 		"ok", err == nil,
 	)
 	if err != nil {
 		mapped := mapProviderGenerateError(err)
-		uc.persistFailedDocument(ctx, wsCtx, title, docType, createdBy, mapped)
+		uc.persistFailedDocument(ctx, wsCtx, title, docType, createdBy, provider, mapped)
 		return nil, mapped
 	}
 
@@ -140,7 +154,7 @@ func (uc *GenerateDocumentUseCase) Execute(
 		CreatedBy:         createdBy,
 	}
 	if doc.ProviderName == "" {
-		doc.ProviderName = uc.provider.Name()
+		doc.ProviderName = provider.Name()
 	}
 
 	if err := uc.docRepo.Create(ctx, doc); err != nil {
@@ -149,12 +163,23 @@ func (uc *GenerateDocumentUseCase) Execute(
 	return toDocumentInfo(doc), nil
 }
 
+func (uc *GenerateDocumentUseCase) resolveProvider(ctx context.Context, orgID uuid.UUID) (llm.LLMProvider, error) {
+	if uc.providerResolver != nil {
+		return uc.providerResolver.Resolve(ctx, orgID)
+	}
+	if uc.defaultProvider != nil {
+		return uc.defaultProvider, nil
+	}
+	return nil, domainErr.New(domainErr.ErrServiceUnavailable, "LLM provider is not configured", nil)
+}
+
 func (uc *GenerateDocumentUseCase) persistFailedDocument(
 	ctx context.Context,
 	wsCtx *WorkspaceLLMContext,
 	title string,
 	documentType string,
 	createdBy *uuid.UUID,
+	provider llm.LLMProvider,
 	mapped error,
 ) {
 	safeMsg := "LLM provider failed to generate content"
@@ -172,7 +197,7 @@ func (uc *GenerateDocumentUseCase) persistFailedDocument(
 		Language:          wsCtx.Language,
 		Status:            docModel.StatusFailed,
 		MarkdownBody:      "",
-		ProviderName:      uc.provider.Name(),
+		ProviderName:      provider.Name(),
 		ErrorMessage:      safeMsg,
 		SourceFingerprint: wsCtx.Fingerprint(),
 		ApprovalStatus:    docModel.ApprovalDraft,
@@ -248,6 +273,8 @@ func clientMessageForProviderCode(code string) string {
 		return "LLM provider model or route not found"
 	case domainErr.ProviderCodeRateLimited:
 		return "LLM provider rate limit or quota exceeded"
+	case domainErr.ProviderCodeQuota:
+		return "LLM provider billing quota exceeded"
 	case domainErr.ProviderCodeUpstream:
 		return "LLM provider is temporarily unavailable"
 	default:

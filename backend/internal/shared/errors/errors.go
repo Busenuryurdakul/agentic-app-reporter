@@ -28,6 +28,7 @@ const (
 	ProviderCodeAuth           = "provider_auth"
 	ProviderCodeNotFound       = "provider_not_found"
 	ProviderCodeRateLimited    = "provider_rate_limited"
+	ProviderCodeQuota          = "provider_quota"
 	ProviderCodeUpstream       = "provider_upstream"
 )
 

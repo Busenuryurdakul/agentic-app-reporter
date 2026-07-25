@@ -29,6 +29,9 @@ func classifyProviderHTTPStatus(status int) (providerCode string, kind error, me
 	case status == http.StatusTooManyRequests:
 		return domainErr.ProviderCodeRateLimited, domainErr.ErrRateLimited,
 			"gemma provider rate limited"
+	case status == http.StatusPaymentRequired:
+		return domainErr.ProviderCodeQuota, domainErr.ErrBadGateway,
+			"gemma provider quota or billing limit reached"
 	case status >= 500:
 		return domainErr.ProviderCodeUpstream, domainErr.ErrInternal,
 			fmt.Sprintf("gemma provider unavailable (HTTP %d)", status)
