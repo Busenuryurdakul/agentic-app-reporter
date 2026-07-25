@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -125,7 +126,9 @@ func (c *Client) Generate(ctx context.Context, req llm.GenerateRequest) (llm.Gen
 	httpReq.Header.Set("Content-Type", "application/json")
 	c.setAuth(httpReq)
 
+	start := time.Now()
 	resp, err := c.httpClient.Do(httpReq)
+	duration := time.Since(start)
 	if err != nil {
 		if ctx.Err() != nil {
 			return llm.GenerateResponse{}, ctx.Err()
@@ -139,22 +142,8 @@ func (c *Client) Generate(ctx context.Context, req llm.GenerateRequest) (llm.Gen
 		return llm.GenerateResponse{}, domainErr.New(domainErr.ErrInternal, "failed to read gemma response", err)
 	}
 
-	if resp.StatusCode == http.StatusTooManyRequests {
-		return llm.GenerateResponse{}, domainErr.New(domainErr.ErrRateLimited, "gemma provider rate limited", nil)
-	}
-	if resp.StatusCode >= 500 {
-		return llm.GenerateResponse{}, domainErr.New(
-			domainErr.ErrInternal,
-			fmt.Sprintf("gemma provider unavailable (HTTP %d)", resp.StatusCode),
-			fmt.Errorf("status=%d body=%s", resp.StatusCode, truncateForError(raw)),
-		)
-	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return llm.GenerateResponse{}, domainErr.New(
-			domainErr.ErrBadRequest,
-			fmt.Sprintf("gemma provider rejected request (HTTP %d)", resp.StatusCode),
-			fmt.Errorf("status=%d body=%s", resp.StatusCode, truncateForError(raw)),
-		)
+		return llm.GenerateResponse{}, c.logAndWrapChatCompletionError(resp.StatusCode, raw, duration)
 	}
 
 	var parsed chatResponse
@@ -162,7 +151,22 @@ func (c *Client) Generate(ctx context.Context, req llm.GenerateRequest) (llm.Gen
 		return llm.GenerateResponse{}, domainErr.New(domainErr.ErrInternal, "invalid gemma response JSON", err)
 	}
 	if parsed.Error != nil && parsed.Error.Message != "" {
-		return llm.GenerateResponse{}, domainErr.New(domainErr.ErrInternal, "gemma provider error", fmt.Errorf("%s", parsed.Error.Message))
+		summary := sanitizeResponseBody([]byte(parsed.Error.Message))
+		slog.Error("llm provider chat completion failed",
+			"provider", c.Name(),
+			"http_status", resp.StatusCode,
+			"provider_error_code", domainErr.ProviderCodeUpstream,
+			"response_body_summary", summary,
+			"model", c.model,
+			"base_url", c.baseURL,
+			"duration_ms", duration.Milliseconds(),
+		)
+		return llm.GenerateResponse{}, domainErr.NewWithProvider(
+			domainErr.ErrInternal,
+			"gemma provider returned an error payload",
+			domainErr.ProviderCodeUpstream,
+			fmt.Errorf("provider_error_message=%s", summary),
+		)
 	}
 	if len(parsed.Choices) == 0 || strings.TrimSpace(parsed.Choices[0].Message.Content) == "" {
 		return llm.GenerateResponse{}, domainErr.New(domainErr.ErrInternal, "gemma provider returned empty content", nil)

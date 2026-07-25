@@ -37,7 +37,11 @@ async function api(method, path, { token, orgId, workspaceId, body, expect } = {
   }
   const expected = expect ?? [200, 201];
   if (!expected.includes(res.status)) {
-    throw new Error(`${method} ${path} -> ${res.status} ${text}`);
+    const detail =
+      typeof data === "object" && data?.provider_error_code
+        ? `${text} (provider_error_code=${data.provider_error_code})`
+        : text;
+    throw new Error(`${method} ${path} -> ${res.status} ${detail}`);
   }
   return { status: res.status, data };
 }
@@ -111,8 +115,13 @@ try {
   }
 
   const health = await api("GET", "/llm/health", { token, orgId });
-  if (health.data?.healthy && health.data?.provider === "mock") {
-    ok("llm health", health.data.provider);
+  const provider = health.data?.provider;
+  const production = API.includes("onrender.com");
+  const providerOk =
+    health.data?.healthy &&
+    (provider === "mock" || (production && provider === "gemma"));
+  if (providerOk) {
+    ok("llm health", `${provider} healthy=${health.data.healthy}`);
   } else {
     fail("llm health", JSON.stringify(health.data));
   }

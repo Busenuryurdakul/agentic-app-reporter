@@ -39,6 +39,22 @@ func TestError_PreservesClientSafeMessage(t *testing.T) {
 	assert.Contains(t, body.Message, "endpoint not found")
 }
 
+func TestError_SurfacesProviderErrorCode(t *testing.T) {
+	rec := httptest.NewRecorder()
+	err := domainErr.NewWithProvider(
+		domainErr.ErrBadGateway,
+		"LLM provider rejected the request (invalid request or context too long)",
+		domainErr.ProviderCodeInvalidRequest,
+		nil,
+	)
+
+	Error(rec, err)
+
+	var body domainErr.ErrorResponse
+	assert.NoError(t, json.NewDecoder(rec.Body).Decode(&body))
+	assert.Equal(t, domainErr.ProviderCodeInvalidRequest, body.ProviderErrorCode)
+}
+
 func TestError_SurfacesBadGatewayMessage(t *testing.T) {
 	rec := httptest.NewRecorder()
 	err := domainErr.New(domainErr.ErrBadGateway, "LLM provider failed to generate content", errors.New("upstream boom"))

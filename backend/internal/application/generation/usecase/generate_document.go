@@ -196,11 +196,56 @@ func mapProviderGenerateError(err error) error {
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		return domainErr.New(domainErr.ErrServiceUnavailable, "LLM provider timed out or was canceled", err)
 	}
+
+	var de *domainErr.DomainError
+	if errors.As(err, &de) && de.ProviderCode != "" {
+		return domainErr.NewWithProvider(
+			mapProviderKind(de),
+			clientMessageForProviderCode(de.ProviderCode),
+			de.ProviderCode,
+			err,
+		)
+	}
+
 	if errors.Is(err, domainErr.ErrRateLimited) {
-		return err
+		return domainErr.NewWithProvider(
+			domainErr.ErrRateLimited,
+			clientMessageForProviderCode(domainErr.ProviderCodeRateLimited),
+			domainErr.ProviderCodeRateLimited,
+			err,
+		)
 	}
 	if errors.Is(err, domainErr.ErrBadRequest) || errors.Is(err, domainErr.ErrValidation) {
-		return domainErr.New(domainErr.ErrBadGateway, "LLM provider rejected the request", err)
+		return domainErr.NewWithProvider(
+			domainErr.ErrBadGateway,
+			clientMessageForProviderCode(domainErr.ProviderCodeInvalidRequest),
+			domainErr.ProviderCodeInvalidRequest,
+			err,
+		)
 	}
 	return domainErr.New(domainErr.ErrBadGateway, "LLM provider failed to generate content", err)
+}
+
+func mapProviderKind(de *domainErr.DomainError) error {
+	if de != nil && de.ProviderCode == domainErr.ProviderCodeRateLimited {
+		return domainErr.ErrRateLimited
+	}
+	return domainErr.ErrBadGateway
+}
+
+func clientMessageForProviderCode(code string) string {
+	switch code {
+	case domainErr.ProviderCodeInvalidRequest:
+		return "LLM provider rejected the request (invalid request or context too long)"
+	case domainErr.ProviderCodeAuth:
+		return "LLM provider authentication or model access failed"
+	case domainErr.ProviderCodeNotFound:
+		return "LLM provider model or route not found"
+	case domainErr.ProviderCodeRateLimited:
+		return "LLM provider rate limit or quota exceeded"
+	case domainErr.ProviderCodeUpstream:
+		return "LLM provider is temporarily unavailable"
+	default:
+		return "LLM provider failed to generate content"
+	}
 }

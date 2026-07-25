@@ -24,16 +24,18 @@ func JSON(w http.ResponseWriter, status int, payload interface{}) {
 func Error(w http.ResponseWriter, err error) {
 	code := domainErr.HTTPStatusCode(err)
 	msg := clientErrorMessage(err)
+	providerCode := providerErrorCode(err)
 	if code >= http.StatusInternalServerError {
-		slog.Error("request failed", "code", code, "error", err)
+		slog.Error("request failed", "code", code, "error", err, "provider_error_code", providerCode)
 		if !isClientSafeServerError(err) {
 			msg = "an internal error occurred"
 		}
 	}
 	JSON(w, code, domainErr.ErrorResponse{
-		Error:   http.StatusText(code),
-		Message: msg,
-		Code:    code,
+		Error:             http.StatusText(code),
+		Message:           msg,
+		Code:              code,
+		ProviderErrorCode: providerCode,
 	})
 }
 
@@ -47,6 +49,14 @@ func clientErrorMessage(err error) string {
 
 func isClientSafeServerError(err error) bool {
 	return errors.Is(err, domainErr.ErrBadGateway) || errors.Is(err, domainErr.ErrServiceUnavailable)
+}
+
+func providerErrorCode(err error) string {
+	var de *domainErr.DomainError
+	if errors.As(err, &de) {
+		return de.ProviderCode
+	}
+	return ""
 }
 
 // Created writes a 201 Created JSON response.

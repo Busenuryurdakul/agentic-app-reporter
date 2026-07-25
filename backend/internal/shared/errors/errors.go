@@ -22,11 +22,21 @@ var (
 	ErrServiceUnavailable = errors.New("service unavailable")
 )
 
+// Provider error codes exposed to API clients when upstream LLM calls fail.
+const (
+	ProviderCodeInvalidRequest = "provider_invalid_request"
+	ProviderCodeAuth           = "provider_auth"
+	ProviderCodeNotFound       = "provider_not_found"
+	ProviderCodeRateLimited    = "provider_rate_limited"
+	ProviderCodeUpstream       = "provider_upstream"
+)
+
 // DomainError is a structured error with an underlying cause and a message.
 type DomainError struct {
-	Kind    error  // One of the sentinel errors above.
-	Message string // Human-readable message.
-	Err     error  // Optional wrapped error for debugging.
+	Kind         error  // One of the sentinel errors above.
+	Message      string // Human-readable message.
+	Err          error  // Optional wrapped error for debugging.
+	ProviderCode string // Optional upstream LLM provider classification code.
 }
 
 // Error implements the error interface.
@@ -48,6 +58,16 @@ func New(kind error, message string, err error) *DomainError {
 		Kind:    kind,
 		Message: message,
 		Err:     err,
+	}
+}
+
+// NewWithProvider creates a DomainError tagged with an upstream provider code.
+func NewWithProvider(kind error, message, providerCode string, err error) *DomainError {
+	return &DomainError{
+		Kind:         kind,
+		Message:      message,
+		Err:          err,
+		ProviderCode: providerCode,
 	}
 }
 
@@ -83,7 +103,8 @@ func HTTPStatusCode(err error) int {
 
 // ErrorResponse is the JSON structure returned to API clients.
 type ErrorResponse struct {
-	Error   string `json:"error"`
-	Message string `json:"message"`
-	Code    int    `json:"code"`
+	Error             string `json:"error"`
+	Message           string `json:"message"`
+	Code              int    `json:"code"`
+	ProviderErrorCode string `json:"provider_error_code,omitempty"`
 }

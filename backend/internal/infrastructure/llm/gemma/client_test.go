@@ -75,6 +75,24 @@ func TestClient_GenerateRateLimited(t *testing.T) {
 	assert.ErrorIs(t, err, domainErr.ErrRateLimited)
 }
 
+func TestClient_GenerateBadRequestClassified(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(`{"error":{"message":"Input validation error: context length exceeded"}}`))
+	}))
+	defer srv.Close()
+
+	c, err := New(Config{BaseURL: srv.URL + "/v1", Model: "test-model", HTTPClient: srv.Client()})
+	require.NoError(t, err)
+	_, err = c.Generate(context.Background(), llm.GenerateRequest{UserPrompt: "x"})
+	require.Error(t, err)
+
+	var de *domainErr.DomainError
+	require.ErrorAs(t, err, &de)
+	assert.Equal(t, domainErr.ProviderCodeInvalidRequest, de.ProviderCode)
+	assert.ErrorIs(t, err, domainErr.ErrBadRequest)
+}
+
 func TestClient_GenerateServerError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadGateway)
@@ -86,6 +104,9 @@ func TestClient_GenerateServerError(t *testing.T) {
 	require.NoError(t, err)
 	_, err = c.Generate(context.Background(), llm.GenerateRequest{UserPrompt: "x"})
 	require.Error(t, err)
+	var de *domainErr.DomainError
+	require.ErrorAs(t, err, &de)
+	assert.Equal(t, domainErr.ProviderCodeUpstream, de.ProviderCode)
 	assert.Contains(t, err.Error(), "unavailable")
 }
 
