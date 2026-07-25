@@ -32,3 +32,4 @@ backend/vendor/
 # Logs
 *.log
 npm-debug.log*
+.vercel

@@ -50,6 +50,7 @@ export function OrganizationsPage() {
     queryFn: () => documentsApi.health(),
     retry: false,
     refetchInterval: 60_000,
+    staleTime: 30_000,
   });
 
   const organizations = orgsQuery.data?.data ?? [];

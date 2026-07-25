@@ -104,6 +104,9 @@ export const documentsApi = {
   },
 
   health() {
-    return apiRequest<ProviderHealthInfo>("/api/v1/llm/health");
+    // Platform-wide probe; no organization or workspace context required.
+    return apiRequest<ProviderHealthInfo>("/api/v1/llm/health", {
+      organizationId: null,
+    });
   },
 };

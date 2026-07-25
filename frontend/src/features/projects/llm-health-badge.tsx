@@ -15,11 +15,11 @@ export function LlmHealthBadge({ health, isLoading, isError }: LlmHealthBadgePro
     return <Badge variant="outline">{tr.generate.healthChecking}</Badge>;
   }
 
-  if (isError) {
+  if (isError || !health) {
     return <Badge variant="destructive">{tr.generate.healthFail}</Badge>;
   }
 
-  if (health?.healthy) {
+  if (health.healthy) {
     return (
       <Badge className="bg-teal-700 text-white hover:bg-teal-700">
         {tr.generate.healthOk(health.provider)}

@@ -216,9 +216,9 @@ func New(deps Dependencies) *chi.Mux {
 				})
 			}
 
-			// Phase 3 S1: LLM provider health (provider-agnostic)
+			// Phase 3 S1: LLM provider health (platform-wide; JWT only, not org-scoped).
 			if deps.GenerationHandler != nil {
-				r.With(maybeRequirePermission(deps.RBACService, "generation:read")).Get("/llm/health", deps.GenerationHandler.ProviderHealth)
+				r.Get("/llm/health", deps.GenerationHandler.ProviderHealth)
 			}
 
 			// AI Development Configuration Studio: workspace-scoped profile & questionnaire routes.
