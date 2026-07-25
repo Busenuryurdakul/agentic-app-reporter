@@ -28,7 +28,8 @@ COPY --from=builder /go/bin/goose /app/goose
 COPY --from=builder /app/internal/infrastructure/postgres/migrations /app/migrations
 COPY deployments/render-entrypoint.sh /app/render-entrypoint.sh
 
-RUN chmod +x /app/render-entrypoint.sh /app/goose /app/seed-questionnaire \
+RUN sed -i 's/\r$//' /app/render-entrypoint.sh \
+    && chmod +x /app/render-entrypoint.sh /app/goose /app/seed-questionnaire \
     && chown -R appuser:appgroup /app
 
 USER appuser
