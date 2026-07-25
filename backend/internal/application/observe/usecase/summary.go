@@ -74,7 +74,7 @@ func (uc *ObserveSummaryUseCase) Execute(ctx context.Context, workspaceID uuid.U
 }
 
 func toRecentSummary(doc *model.GeneratedDocument) dto.RecentDocumentSummary {
-	q := quality.Evaluate(doc.MarkdownBody, doc.Language)
+	q := quality.EvaluateForType(doc.MarkdownBody, doc.Language, doc.DocumentType)
 	approval := doc.ApprovalStatus
 	if approval == "" {
 		approval = model.ApprovalDraft
@@ -92,10 +92,11 @@ func toRecentSummary(doc *model.GeneratedDocument) dto.RecentDocumentSummary {
 		CreatedAt:      doc.CreatedAt,
 		UpdatedAt:      doc.UpdatedAt,
 		Quality: dto.DocumentQuality{
-			HasHeading:       q.HasHeading,
-			MinLengthOK:      q.MinLengthOK,
-			LanguageDeclared: q.LanguageDeclared,
-			QualityScore:     q.QualityScore,
+			HasHeading:        q.HasHeading,
+			MinLengthOK:       q.MinLengthOK,
+			LanguageDeclared:  q.LanguageDeclared,
+			SectionCoverageOK: q.SectionCoverageOK,
+			QualityScore:      q.QualityScore,
 		},
 	}
 }

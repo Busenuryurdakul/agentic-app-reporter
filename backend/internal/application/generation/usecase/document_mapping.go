@@ -59,11 +59,12 @@ func toDocumentSummary(doc *model.GeneratedDocument) dto.DocumentSummary {
 }
 
 func toDocumentQuality(doc *model.GeneratedDocument) dto.DocumentQuality {
-	s := quality.Evaluate(doc.MarkdownBody, doc.Language)
+	s := quality.EvaluateForType(doc.MarkdownBody, doc.Language, doc.DocumentType)
 	return dto.DocumentQuality{
-		HasHeading:       s.HasHeading,
-		MinLengthOK:      s.MinLengthOK,
-		LanguageDeclared: s.LanguageDeclared,
-		QualityScore:     s.QualityScore,
+		HasHeading:        s.HasHeading,
+		MinLengthOK:       s.MinLengthOK,
+		LanguageDeclared:  s.LanguageDeclared,
+		SectionCoverageOK: s.SectionCoverageOK,
+		QualityScore:      s.QualityScore,
 	}
 }

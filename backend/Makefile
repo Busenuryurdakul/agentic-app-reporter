@@ -1,4 +1,4 @@
-.PHONY: build run test lint migrate migrate-down docker-up docker-down compose-up-full compose-up-mlc-gpu compose-down-mlc-gpu compose-down-full compose-monitoring-native compose-scale-api verify-mlc verify-hybrid llm-hybrid k8s-apply k8s-delete clean help
+.PHONY: build run test lint migrate migrate-down docker-up docker-down compose-up-full compose-up-mlc-gpu compose-down-mlc-gpu compose-down-full compose-monitoring-native compose-scale-api verify-mlc verify-hybrid llm-hybrid export-peft-dataset k8s-apply k8s-delete clean help
 
 APP_NAME := masterfabric
 BUILD_DIR := bin
@@ -162,3 +162,8 @@ seed:
 seed-questionnaire:
 	@echo "Seeding studio-default questionnaire..."
 	go run ./cmd/seed-questionnaire
+
+## export-peft-dataset: Export approved product_spec JSONL for PEFT (requires ORG_ID)
+export-peft-dataset:
+	@test -n "$(ORG_ID)" || (echo "Set ORG_ID=<organization-uuid>" && exit 1)
+	go run ./cmd/export-peft-dataset --org-id=$(ORG_ID) --out-dir=$(or $(OUT_DIR),./peft-export) $(ARGS)

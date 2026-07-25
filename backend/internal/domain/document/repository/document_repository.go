@@ -31,4 +31,6 @@ type DocumentRepository interface {
 	CountByWorkspace(ctx context.Context, workspaceID uuid.UUID) (*WorkspaceDocumentStats, error)
 	CountProvidersByWorkspace(ctx context.Context, workspaceID uuid.UUID) ([]ProviderCount, error)
 	UpdateApproval(ctx context.Context, doc *model.GeneratedDocument) error
+	// ListForPEFTExport returns approved succeeded product_spec documents for offline training export.
+	ListForPEFTExport(ctx context.Context, filter PEFTExportFilter) ([]*model.GeneratedDocument, error)
 }

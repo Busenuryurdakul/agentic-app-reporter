@@ -28,7 +28,12 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError, getErrorMessage } from "@/lib/api/errors";
-import { documentsApi, type DocumentSummary } from "@/lib/api/documents";
+import {
+  documentsApi,
+  DOCUMENT_TYPE_LABELS,
+  type DocumentSummary,
+  type DocumentType,
+} from "@/lib/api/documents";
 import { workspacesApi } from "@/lib/api/workspaces";
 import { tr } from "@/lib/i18n/tr";
 import {
@@ -70,6 +75,7 @@ export function GeneratePage({
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [language, setLanguage] = useState<"workspace" | "tr" | "en">("workspace");
+  const [documentType, setDocumentType] = useState<DocumentType>("studio_markdown");
   const { isActive: llmActive } = useLlmActive();
 
   const workspaceQuery = useQuery({
@@ -87,6 +93,7 @@ export function GeneratePage({
       documentsApi.generate(workspaceId, {
         title: title.trim() || undefined,
         language: language === "workspace" ? undefined : language,
+        document_type: documentType,
       }),
     onSuccess: async (doc) => {
       toast.success(tr.generate.created);
@@ -178,6 +185,25 @@ export function GeneratePage({
               placeholder={tr.generate.titlePlaceholder}
               disabled={generateMutation.isPending}
             />
+          </div>
+          <div className="grid w-full gap-2 md:w-56">
+            <Label>{tr.generate.documentTypeField}</Label>
+            <Select
+              value={documentType}
+              onValueChange={(v) => setDocumentType(v as DocumentType)}
+              disabled={generateMutation.isPending}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="studio_markdown">{tr.generate.documentTypeStudio}</SelectItem>
+                <SelectItem value="product_spec">{tr.generate.documentTypeProductSpec}</SelectItem>
+              </SelectContent>
+            </Select>
+            {documentType === "product_spec" ? (
+              <p className="text-xs text-muted-foreground">{tr.generate.documentTypeHint}</p>
+            ) : null}
           </div>
           <div className="grid w-full gap-2 md:w-48">
             <Label>{tr.generate.languageField}</Label>
@@ -274,6 +300,9 @@ function DocumentRow({ doc, href }: { doc: DocumentSummary; href: string }) {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Badge variant="outline">
+            {DOCUMENT_TYPE_LABELS[doc.document_type as DocumentType] ?? doc.document_type}
+          </Badge>
           <Badge variant="outline">{doc.language.toUpperCase()}</Badge>
           <Badge variant={doc.status === "succeeded" ? "secondary" : "destructive"}>
             {statusLabel(doc.status)}

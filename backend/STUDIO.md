@@ -133,14 +133,40 @@ All routes require JWT + `X-Organization-ID`. Workspace must belong to that org.
 | POST | `/api/v1/workspaces/{workspaceId}/documents/{documentId}/regenerate` | `generation:run` |
 | POST | `/api/v1/workspaces/{workspaceId}/documents/{documentId}/approve` | `document:approve` |
 
-Generate body (optional): `{ "title": "...", "language": "tr"|"en" }`.  
+Generate body (optional): `{ "title": "...", "language": "tr"|"en", "document_type": "studio_markdown"|"product_spec" }`.  
 Language defaults to workspace `preferred_document_language`.  
 Missing required questionnaire answers are a soft gate (listed in context; generate still runs).
 
 Regenerate creates a **new** document row; the source document is kept.  
 Approve is allowed only when `status=succeeded`; already-approved docs are idempotent.
 
-Migrations: `00016_generated_documents.sql`, `00017_document_approval.sql`.
+Migrations: `00016_generated_documents.sql`, `00017_document_approval.sql`, `00018_peft_export_index.sql`.
+
+### PEFT dataset export (CLI, offline)
+
+Approved `product_spec` documents → JSONL for fine-tuning. **Not** an HTTP API; prompts are
+reconstructed at export time (never persisted).
+
+```bash
+# Dry-run (manifest only)
+go run ./cmd/export-peft-dataset --org-id=<ORG_UUID> --dry-run --verbose
+
+# Export
+make export-peft-dataset ORG_ID=<ORG_UUID> OUT_DIR=./peft-export ARGS="--write-skipped"
+
+# Or directly
+go run ./cmd/export-peft-dataset \
+  --org-id=<ORG_UUID> \
+  --out-dir=./peft-export \
+  --split=0.9 \
+  --dedupe=fingerprint
+```
+
+Output: `train.jsonl`, `val.jsonl`, `manifest.json` (optional `skipped.jsonl`).  
+Exit codes: `0` ok, `2` no rows exported, `3` DB error.  
+Plan: `docs/issues/peft-dataset-export-phase-ab.md`, schema: `docs/product-spec-schema.md`.
+
+PEFT integration smoke: `node ./scripts/smoke_peft_export.mjs` (Phase D; requires approved `product_spec` rows).
 
 ### Smoke
 

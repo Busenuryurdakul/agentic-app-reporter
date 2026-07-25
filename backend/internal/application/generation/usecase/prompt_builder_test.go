@@ -33,7 +33,7 @@ func TestPromptBuilder_TurkishIncludesVisibleAnswersAndMissing(t *testing.T) {
 		},
 	}
 
-	req, err := NewPromptBuilder().Build(ctx)
+	req, err := NewPromptBuilder().Build(ctx, "")
 	require.NoError(t, err)
 	assert.Contains(t, req.SystemPrompt, "Markdown")
 	assert.Contains(t, req.UserPrompt, "Çalışma alanı bağlamı")
@@ -53,7 +53,7 @@ func TestPromptBuilder_English(t *testing.T) {
 		Language:         "en",
 		QuestionnaireSet: "studio-default",
 		Profile:          ProfileSnapshot{ProjectName: "X", Sections: map[string]json.RawMessage{}},
-	})
+	}, "")
 	require.NoError(t, err)
 	assert.Contains(t, req.SystemPrompt, "technical documentation")
 	assert.Contains(t, req.UserPrompt, "Workspace context")
@@ -61,8 +61,24 @@ func TestPromptBuilder_English(t *testing.T) {
 }
 
 func TestPromptBuilder_NilContext(t *testing.T) {
-	_, err := NewPromptBuilder().Build(nil)
+	_, err := NewPromptBuilder().Build(nil, "")
 	require.Error(t, err)
+}
+
+func TestPromptBuilder_ProductSpec_IncludesRequiredSections(t *testing.T) {
+	req, err := NewPromptBuilder().Build(&WorkspaceLLMContext{
+		WorkspaceName:    "Demo",
+		WorkspaceSlug:    "demo",
+		Language:         "tr",
+		QuestionnaireSet: "studio-default",
+		Profile:          ProfileSnapshot{ProjectName: "Studio"},
+	}, "product_spec")
+	require.NoError(t, err)
+	assert.Contains(t, req.SystemPrompt, "ürün spesifikasyonu")
+	assert.Contains(t, req.UserPrompt, "Belge tipi: product_spec")
+	assert.Contains(t, req.UserPrompt, "## 1. Özet ve hedef kullanıcı")
+	assert.Contains(t, req.UserPrompt, "MCP ve otomasyon entegrasyonları")
+	assert.Contains(t, req.SystemPrompt, "uses_mcp")
 }
 
 func TestSanitizeJSONValue_RedactsNestedSecrets(t *testing.T) {

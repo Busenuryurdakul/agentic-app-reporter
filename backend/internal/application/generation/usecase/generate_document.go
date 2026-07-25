@@ -76,6 +76,13 @@ func (uc *GenerateDocumentUseCase) Execute(
 	}
 	defer uc.gate.End(ctx, workspaceID)
 
+	if req.DocumentType != "" {
+		if err := docModel.ValidateDocumentType(req.DocumentType); err != nil {
+			return nil, domainErr.New(domainErr.ErrValidation, err.Error(), err)
+		}
+	}
+	docType := docModel.NormalizeDocumentType(req.DocumentType)
+
 	wsCtx, err := uc.contextBuilder.Build(ctx, workspaceID, BuildContextOptions{
 		LanguageOverride: req.Language,
 	})
@@ -83,12 +90,12 @@ func (uc *GenerateDocumentUseCase) Execute(
 		return nil, err
 	}
 
-	prompt, err := uc.promptBuilder.Build(wsCtx)
+	prompt, err := uc.promptBuilder.Build(wsCtx, docType)
 	if err != nil {
 		return nil, domainErr.New(domainErr.ErrInternal, "failed to build prompt", err)
 	}
 
-	title := resolveDocumentTitle(req.Title, wsCtx.Language)
+	title := resolveDocumentTitle(req.Title, wsCtx.Language, docType)
 	var createdBy *uuid.UUID
 	if uid, ok := middleware.UserIDFromContext(ctx); ok {
 		createdBy = &uid
@@ -113,7 +120,7 @@ func (uc *GenerateDocumentUseCase) Execute(
 	)
 	if err != nil {
 		mapped := mapProviderGenerateError(err)
-		uc.persistFailedDocument(ctx, wsCtx, title, createdBy, mapped)
+		uc.persistFailedDocument(ctx, wsCtx, title, docType, createdBy, mapped)
 		return nil, mapped
 	}
 
@@ -122,7 +129,7 @@ func (uc *GenerateDocumentUseCase) Execute(
 		OrganizationID:    wsCtx.OrganizationID,
 		WorkspaceID:       wsCtx.WorkspaceID,
 		Title:             title,
-		DocumentType:      docModel.DocumentTypeStudioMarkdown,
+		DocumentType:      docType,
 		Language:          wsCtx.Language,
 		Status:            docModel.StatusSucceeded,
 		MarkdownBody:      genResp.Content,
@@ -146,6 +153,7 @@ func (uc *GenerateDocumentUseCase) persistFailedDocument(
 	ctx context.Context,
 	wsCtx *WorkspaceLLMContext,
 	title string,
+	documentType string,
 	createdBy *uuid.UUID,
 	mapped error,
 ) {
@@ -160,7 +168,7 @@ func (uc *GenerateDocumentUseCase) persistFailedDocument(
 		OrganizationID:    wsCtx.OrganizationID,
 		WorkspaceID:       wsCtx.WorkspaceID,
 		Title:             title,
-		DocumentType:      docModel.DocumentTypeStudioMarkdown,
+		DocumentType:      documentType,
 		Language:          wsCtx.Language,
 		Status:            docModel.StatusFailed,
 		MarkdownBody:      "",
@@ -178,15 +186,12 @@ func (uc *GenerateDocumentUseCase) persistFailedDocument(
 	}
 }
 
-func resolveDocumentTitle(reqTitle, language string) string {
+func resolveDocumentTitle(reqTitle, language, documentType string) string {
 	title := strings.TrimSpace(reqTitle)
 	if title != "" {
 		return title
 	}
-	if language == "en" {
-		return "AI Development Configuration"
-	}
-	return "AI Geliştirme Yapılandırması"
+	return docModel.DefaultDocumentTitle(documentType, language)
 }
 
 func mapProviderGenerateError(err error) error {

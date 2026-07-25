@@ -117,3 +117,8 @@ Plan: `STAGE3_MLC_PLAN.md`
 | 4 Observe / scoring / export | Done (readiness, quality, approve, export, Gözlemle UI) |
 | 5 MLC backend / Grafana / Compose scale | Done (Redis lock, mock MLC, nginx, Loki logs, K8s HPA) |
 | 6+ PDF / score history / LLM critique | Not started |
+| 6 Product Specs (`product_spec`) | In progress — schema + generate API |
+
+Plan: `docs/product-spec-schema.md`
+
+---

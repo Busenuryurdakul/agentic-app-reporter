@@ -9,16 +9,18 @@ import (
 // GenerateDocumentRequest is the optional body for document generation.
 // Profile/answers must never be accepted here — context is built server-side.
 type GenerateDocumentRequest struct {
-	Title    string `json:"title"`
-	Language string `json:"language"`
+	Title        string `json:"title"`
+	Language     string `json:"language"`
+	DocumentType string `json:"document_type" validate:"omitempty,oneof=studio_markdown product_spec"`
 }
 
 // DocumentQuality is the deterministic heuristic quality payload (Phase 4 S2).
 type DocumentQuality struct {
-	HasHeading       bool `json:"has_heading"`
-	MinLengthOK      bool `json:"min_length_ok"`
-	LanguageDeclared bool `json:"language_declared"`
-	QualityScore     int  `json:"quality_score"`
+	HasHeading        bool `json:"has_heading"`
+	MinLengthOK       bool `json:"min_length_ok"`
+	LanguageDeclared  bool `json:"language_declared"`
+	SectionCoverageOK bool `json:"section_coverage_ok,omitempty"`
+	QualityScore      int  `json:"quality_score"`
 }
 
 // DocumentInfo is the full document payload (get/generate responses).

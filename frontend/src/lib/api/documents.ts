@@ -1,15 +1,24 @@
 import { apiRequest } from "@/lib/api/client";
 import { authStorage } from "@/lib/auth/storage";
 
+export type DocumentType = "studio_markdown" | "product_spec";
+
 export type GenerateDocumentRequest = {
   title?: string;
   language?: string;
+  document_type?: DocumentType;
+};
+
+export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
+  studio_markdown: "Yapılandırma belgesi",
+  product_spec: "Ürün spesifikasyonu",
 };
 
 export type DocumentQuality = {
   has_heading: boolean;
   min_length_ok: boolean;
   language_declared: boolean;
+  section_coverage_ok?: boolean;
   quality_score: number;
 };
 

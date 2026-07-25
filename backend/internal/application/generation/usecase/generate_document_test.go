@@ -55,6 +55,13 @@ func (m *mockDocumentRepo) CountProvidersByWorkspace(ctx context.Context, worksp
 func (m *mockDocumentRepo) UpdateApproval(ctx context.Context, doc *docModel.GeneratedDocument) error {
 	return m.Called(ctx, doc).Error(0)
 }
+func (m *mockDocumentRepo) ListForPEFTExport(ctx context.Context, filter docRepo.PEFTExportFilter) ([]*docModel.GeneratedDocument, error) {
+	args := m.Called(ctx, filter)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*docModel.GeneratedDocument), args.Error(1)
+}
 
 type stubLLMProvider struct {
 	name string
@@ -266,7 +273,7 @@ func TestListDocuments_OmitsBodiesInSummary(t *testing.T) {
 	// Quality is computed server-side from body without exposing markdown_body.
 	assert.True(t, out.Documents[0].Quality.HasHeading)
 	assert.False(t, out.Documents[0].Quality.MinLengthOK)
-	assert.Equal(t, 40, out.Documents[0].Quality.QualityScore)
+	assert.Equal(t, 30, out.Documents[0].Quality.QualityScore)
 }
 
 func TestGetDocument_ForeignWorkspaceForbidden(t *testing.T) {

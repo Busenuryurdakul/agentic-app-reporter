@@ -82,6 +82,13 @@ func (m *mockDocumentRepo) CountProvidersByWorkspace(ctx context.Context, worksp
 func (m *mockDocumentRepo) UpdateApproval(ctx context.Context, doc *docModel.GeneratedDocument) error {
 	return m.Called(ctx, doc).Error(0)
 }
+func (m *mockDocumentRepo) ListForPEFTExport(ctx context.Context, filter docRepo.PEFTExportFilter) ([]*docModel.GeneratedDocument, error) {
+	args := m.Called(ctx, filter)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*docModel.GeneratedDocument), args.Error(1)
+}
 
 type stubCompleteness struct {
 	result *profiledto.CompletenessResult

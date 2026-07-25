@@ -54,8 +54,9 @@ func (uc *RegenerateDocumentUseCase) Execute(
 		return nil, domainErr.New(domainErr.ErrForbidden, "document does not belong to your organization workspace", nil)
 	}
 
-	// Current context/language from workspace; keep source title for continuity.
+	// Current context/language from workspace; keep source title and document type.
 	return uc.generate.Execute(ctx, workspaceID, dto.GenerateDocumentRequest{
-		Title: source.Title,
+		Title:        source.Title,
+		DocumentType: source.DocumentType,
 	})
 }
