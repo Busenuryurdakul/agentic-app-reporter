@@ -222,9 +222,8 @@ func ValidateLLMConfig(cfg LLMConfig, production bool) error {
 		if strings.TrimSpace(cfg.BaseURL) == "" {
 			return fmt.Errorf("LLM_BASE_URL is required when LLM_PROVIDER=gemma")
 		}
-		if production && strings.TrimSpace(cfg.APIKey) == "" {
-			return fmt.Errorf("LLM_API_KEY is required in production when LLM_PROVIDER=gemma")
-		}
+		// API key is recommended in production but optional at boot so Render deploys
+		// succeed before secrets are set; /api/v1/llm/health reports unhealthy until configured.
 	default:
 		return fmt.Errorf("unknown LLM provider %q (supported in this build: mock, gemma)", cfg.Provider)
 	}

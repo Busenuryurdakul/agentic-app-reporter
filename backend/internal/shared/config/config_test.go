@@ -67,8 +67,7 @@ func TestValidateLLMConfig(t *testing.T) {
 		BaseURL:        "http://localhost:11434/v1",
 		TimeoutSeconds: 60,
 	}, true)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "LLM_API_KEY")
+	assert.NoError(t, err)
 
 	assert.NoError(t, ValidateLLMConfig(LLMConfig{
 		Enabled:        true,

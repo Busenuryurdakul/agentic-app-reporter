@@ -36,11 +36,11 @@ services:
         value: "120"
       - key: LLM_MAX_RETRIES
         value: "2"
-      # Set manually in Render dashboard (secrets; not synced from repo):
       - key: LLM_BASE_URL
-        sync: false
+        value: https://router.huggingface.co/v1
       - key: LLM_MODEL
-        sync: false
+        value: google/gemma-2-2b-it:featherless-ai
+      # Set manually in Render dashboard (secret; not synced from repo on blueprint update):
       - key: LLM_API_KEY
         sync: false
       - key: LOG_LEVEL

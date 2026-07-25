@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -103,6 +104,9 @@ func run() error {
 	// Initialize PostgreSQL
 	db, err := database.NewPostgresPool(ctx, cfg.Database)
 	if err != nil {
+		if cfg.IsProduction() {
+			return fmt.Errorf("postgres required in production: %w", err)
+		}
 		log.Warn("postgres unavailable, running without database", "error", err)
 		db = nil
 	} else {
@@ -266,6 +270,9 @@ func buildDependencies(
 	// LLM provider is independent of the database (mock / gemma via LLMProvider).
 	if err := config.ValidateLLMConfig(cfg.LLM, cfg.IsProduction()); err != nil {
 		return deps, nil, fmt.Errorf("llm config: %w", err)
+	}
+	if cfg.IsProduction() && cfg.LLM.Enabled && strings.EqualFold(cfg.LLM.Provider, "gemma") && strings.TrimSpace(cfg.LLM.APIKey) == "" {
+		log.Warn("LLM_API_KEY is unset; gemma generate will fail until set in Render dashboard")
 	}
 	llmProvider, err := infraLLM.NewProvider(cfg.LLM)
 	if err != nil {
