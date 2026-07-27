@@ -135,13 +135,28 @@ cp .env.example .env.local
 
 Backend reads comma-separated origins from `CORS_ALLOWED_ORIGINS`.
 
-After Vercel deploy, confirm the **exact** Production URL is listed in Render, e.g.:
+After Vercel deploy, confirm **all** Production URLs are listed in Render `CORS_ALLOWED_ORIGINS`:
 
 ```
-https://your-app.vercel.app
+https://frontend-orpin-nine-72.vercel.app
+https://frontend-buse7.vercel.app
+https://agentic-app-reporter.vercel.app
 ```
 
-Include preview URLs only if you test preview deployments against production API.
+Also include `*-git-main-*` aliases if you use them. Sync live Render env:
+
+```bash
+cd backend
+node ./scripts/sync_render_cors.mjs   # requires RENDER_API_KEY in backend/.env
+```
+
+| URL | Public access | CORS |
+|-----|---------------|------|
+| `frontend-orpin-nine-72.vercel.app` | Yes (primary frontend production URL) | Allowed |
+| `agentic-app-reporter.vercel.app` | Yes (monorepo Vercel project) | Allowed after CORS sync |
+| `frontend-buse7.vercel.app` | May require Vercel SSO (Deployment Protection) | Allowed |
+
+If `frontend-buse7` redirects to Vercel login: **Vercel → frontend project → Settings → Deployment Protection** → disable protection for Production (or use `frontend-orpin-nine-72` as the public URL).
 
 Symptom of mismatch: browser Network tab shows CORS error; API logs show blocked origin.
 
