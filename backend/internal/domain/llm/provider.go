@@ -7,6 +7,8 @@ const (
 	ProviderMock = "mock"
 	// ProviderGemma is the registry name for the OpenAI-compatible Gemma HTTP adapter.
 	ProviderGemma = "gemma"
+	// ProviderOllama is the registry name for local Ollama (OpenAI-compatible /v1).
+	ProviderOllama = "ollama"
 )
 
 // TokenUsage optionally reports token counts from a provider response.

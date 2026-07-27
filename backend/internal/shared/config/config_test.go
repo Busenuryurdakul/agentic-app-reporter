@@ -77,6 +77,20 @@ func TestValidateLLMConfig(t *testing.T) {
 		TimeoutSeconds: 60,
 	}, true))
 
+	assert.NoError(t, ValidateLLMConfig(LLMConfig{
+		Enabled:        true,
+		Provider:       "ollama",
+		TimeoutSeconds: 60,
+	}, false))
+
+	assert.NoError(t, ValidateLLMConfig(LLMConfig{
+		Enabled:        true,
+		Provider:       "ollama",
+		BaseURL:        "http://127.0.0.1:11434/v1",
+		Model:          "llama3.2",
+		TimeoutSeconds: 120,
+	}, false))
+
 	err = ValidateLLMConfig(LLMConfig{Enabled: true, Provider: "mock", TimeoutSeconds: 0}, false)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "LLM_TIMEOUT_SECONDS")

@@ -69,6 +69,41 @@ func TestNewProvider_SelectsGemma(t *testing.T) {
 	assert.True(t, h.Healthy)
 }
 
+func TestNewProvider_SelectsOllama(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v1/chat/completions":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"model": "llama3.2",
+				"choices": []map[string]any{
+					{"finish_reason": "stop", "message": map[string]string{"content": "# Ollama\n"}},
+				},
+			})
+		case "/v1/models":
+			w.WriteHeader(http.StatusOK)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer srv.Close()
+
+	p, err := NewProvider(config.LLMConfig{
+		Enabled:        true,
+		Provider:       "ollama",
+		BaseURL:        srv.URL + "/v1",
+		Model:          "llama3.2",
+		TimeoutSeconds: 5,
+		MaxRetries:     0,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, domainllm.ProviderOllama, p.Name())
+
+	resp, err := p.Generate(context.Background(), domainllm.GenerateRequest{UserPrompt: "x"})
+	require.NoError(t, err)
+	assert.Contains(t, resp.Content, "# Ollama")
+	assert.Equal(t, domainllm.ProviderOllama, resp.Provider)
+}
+
 func TestNewProvider_CaseInsensitive(t *testing.T) {
 	p, err := NewProvider(config.LLMConfig{Enabled: true, Provider: "MoCk", TimeoutSeconds: 5})
 	require.NoError(t, err)
@@ -106,6 +141,7 @@ func TestNewProvider_DisabledStillReturnsProvider(t *testing.T) {
 func TestIsKnownProvider(t *testing.T) {
 	assert.True(t, IsKnownProvider("mock"))
 	assert.True(t, IsKnownProvider("GEMMA"))
+	assert.True(t, IsKnownProvider("ollama"))
 	assert.False(t, IsKnownProvider("openai"))
 	assert.False(t, IsKnownProvider(""))
 }

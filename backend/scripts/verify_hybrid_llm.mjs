@@ -6,6 +6,7 @@
  *
  * Modes:
  *   mock  — skips external LLM; probes API /llm/health when API is up
+ *   ollama — local Ollama at http://127.0.0.1:11434/v1 (no API key)
  *   gemma + localhost — MLC/mock container (no API key required)
  *   gemma + remote URL — HF or Render external (API key required)
  */
@@ -44,6 +45,33 @@ const api = (process.env.API_BASE || "http://localhost:8080/api/v1").replace(/\/
 const isLocalBase =
   base.includes("127.0.0.1") || base.includes("localhost") || base.includes("mlc-llm:");
 
+async function probeLocalOpenAI(baseUrl, useModel, apiKey) {
+  await step("GET /v1/models", async () => {
+    const headers = {};
+    if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+    const res = await fetch(`${baseUrl}/models`, { headers });
+    const text = await res.text();
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${text.slice(0, 200)}`);
+  });
+  await step("POST /v1/chat/completions", async () => {
+    const headers = { "Content-Type": "application/json" };
+    if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+    const res = await fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        model: useModel,
+        messages: [{ role: "user", content: "Reply with exactly: OK" }],
+        max_tokens: 32,
+      }),
+    });
+    const text = await res.text();
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${text.slice(0, 200)}`);
+    const data = JSON.parse(text);
+    if (!data?.choices?.[0]?.message?.content) throw new Error("empty completion");
+  });
+}
+
 let failed = 0;
 
 async function step(name, fn) {
@@ -76,6 +104,12 @@ if (provider === "mock") {
   await stepOptional("mock — external endpoint skipped", async () => {
     if (base) throw new Error("LLM_BASE_URL set but provider is mock");
   });
+} else if (provider === "ollama") {
+  const ollamaBase = (base || "http://127.0.0.1:11434/v1").replace(/\/$/, "");
+  const useModel = model || "llama3.2";
+  console.log("Mode O — local Ollama");
+  console.log("  effective base:", ollamaBase);
+  await probeLocalOpenAI(ollamaBase, useModel, key);
 } else if (provider === "gemma") {
   if (!base) {
     await step("gemma requires LLM_BASE_URL", async () => {
@@ -88,29 +122,7 @@ if (provider === "mock") {
       const res = await fetch(`${mlcBase}/health`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
     });
-    await step("GET /v1/models", async () => {
-      const res = await fetch(`${base}/models`);
-      const text = await res.text();
-      if (!res.ok) throw new Error(`HTTP ${res.status} ${text.slice(0, 200)}`);
-    });
-    await step("POST /v1/chat/completions", async () => {
-      const useModel = model || "mock-mlc-model";
-      const headers = { "Content-Type": "application/json" };
-      if (key) headers.Authorization = `Bearer ${key}`;
-      const res = await fetch(`${base}/chat/completions`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          model: useModel,
-          messages: [{ role: "user", content: "Reply with exactly: OK" }],
-          max_tokens: 32,
-        }),
-      });
-      const text = await res.text();
-      if (!res.ok) throw new Error(`HTTP ${res.status} ${text.slice(0, 200)}`);
-      const data = JSON.parse(text);
-      if (!data?.choices?.[0]?.message?.content) throw new Error("empty completion");
-    });
+    await probeLocalOpenAI(base, model || "mock-mlc-model", key);
   } else {
     console.log("Mode B/E — remote OpenAI-compatible endpoint");
     await step("GET /v1/models", async () => {
@@ -188,7 +200,7 @@ await stepOptional("API GET /llm/health", async () => {
   const healthData = await health.json();
   if (!health.ok) throw new Error(`health ${health.status}`);
   if (!healthData.healthy) throw new Error(JSON.stringify(healthData));
-  const expectedProvider = provider === "mock" ? "mock" : "gemma";
+  const expectedProvider = provider === "mock" ? "mock" : provider;
   if (healthData.provider !== expectedProvider) {
     throw new Error(`expected provider ${expectedProvider}, got ${JSON.stringify(healthData)}`);
   }

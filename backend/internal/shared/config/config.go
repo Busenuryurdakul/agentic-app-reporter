@@ -224,8 +224,11 @@ func ValidateLLMConfig(cfg LLMConfig, production bool) error {
 		}
 		// API key is recommended in production but optional at boot so Render deploys
 		// succeed before secrets are set; /api/v1/llm/health reports unhealthy until configured.
+	case "ollama":
+		// Base URL optional — defaults to http://127.0.0.1:11434/v1 in the Ollama adapter.
+		// API key is not required for local Ollama.
 	default:
-		return fmt.Errorf("unknown LLM provider %q (supported in this build: mock, gemma)", cfg.Provider)
+		return fmt.Errorf("unknown LLM provider %q (supported in this build: mock, gemma, ollama)", cfg.Provider)
 	}
 
 	if cfg.TimeoutSeconds <= 0 {
