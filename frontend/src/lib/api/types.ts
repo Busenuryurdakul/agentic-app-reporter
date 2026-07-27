@@ -67,3 +67,6 @@ export type ApiErrorBody = {
   message?: string;
   code?: number | string;
 };
+
+/** Supported LLM providers for organization-level settings. */
+export type LLMProviderName = "mock" | "gemma" | "ollama";

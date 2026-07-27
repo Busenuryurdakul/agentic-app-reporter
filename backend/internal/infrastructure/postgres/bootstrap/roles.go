@@ -33,6 +33,8 @@ func SeedRoles(ctx context.Context, db *pgxpool.Pool) error {
 		"integration:write",
 		"monitoring:read",
 		"scoring:read",
+		"llm:read",
+		"llm:write",
 	}
 
 	roles := []struct {
@@ -75,6 +77,7 @@ func SeedRoles(ctx context.Context, db *pgxpool.Pool) error {
 				"export:create",
 				"endpoint:read",
 				"endpoint:write",
+				"llm:read",
 			},
 		},
 		{

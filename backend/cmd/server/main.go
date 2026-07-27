@@ -22,6 +22,7 @@ import (
 	exportHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/export"
 	generationHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/generation"
 	iamHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/iam"
+	llmsettingsHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/llmsettings"
 	observeHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/observe"
 	projectprofileHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/projectprofile"
 	questionnaireHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/questionnaire"
@@ -35,6 +36,7 @@ import (
 	pgBootstrap "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/bootstrap"
 	pgDocument "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/document"
 	pgIam "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/iam"
+	pgLLM "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/llm"
 	pgProjectProfile "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/projectprofile"
 	pgQuestionnaire "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/questionnaire"
 	pgTenant "github.com/masterfabric-go/masterfabric/internal/infrastructure/postgres/tenant"
@@ -45,6 +47,7 @@ import (
 	exportUC "github.com/masterfabric-go/masterfabric/internal/application/export/usecase"
 	generationUC "github.com/masterfabric-go/masterfabric/internal/application/generation/usecase"
 	iamUC "github.com/masterfabric-go/masterfabric/internal/application/iam/usecase"
+	llmsettingsUC "github.com/masterfabric-go/masterfabric/internal/application/llmsettings/usecase"
 	observeUC "github.com/masterfabric-go/masterfabric/internal/application/observe/usecase"
 	projectprofileUC "github.com/masterfabric-go/masterfabric/internal/application/projectprofile/usecase"
 	questionnaireUC "github.com/masterfabric-go/masterfabric/internal/application/questionnaire/usecase"
@@ -58,6 +61,7 @@ import (
 	// Shared
 	"github.com/masterfabric-go/masterfabric/internal/shared/cache"
 	"github.com/masterfabric-go/masterfabric/internal/shared/config"
+	"github.com/masterfabric-go/masterfabric/internal/shared/crypto"
 	"github.com/masterfabric-go/masterfabric/internal/shared/database"
 	"github.com/masterfabric-go/masterfabric/internal/shared/events"
 	"github.com/masterfabric-go/masterfabric/internal/shared/logger"
@@ -308,6 +312,20 @@ func buildDependencies(
 	questionRepo := pgQuestionnaire.NewQuestionRepository(db)
 	answerRepo := pgQuestionnaire.NewAnswerRepository(db)
 	documentRepo := pgDocument.NewDocumentRepository(db)
+	orgLLMSettingsRepo := pgLLM.NewOrgLLMSettingsRepository(db)
+
+	llmEncKey := strings.TrimSpace(cfg.LLM.EncryptionKey)
+	if llmEncKey == "" {
+		llmEncKey = cfg.JWT.Secret
+	}
+	decryptOrgKey := func(encoded string) (string, error) {
+		return crypto.DecryptString(encoded, llmEncKey)
+	}
+	encryptOrgKey := func(plain string) (string, error) {
+		return crypto.EncryptString(plain, llmEncKey)
+	}
+	llmConfigMerger := llmsettingsUC.NewEffectiveLLMConfigMerger(cfg.LLM, cfg.IsProduction(), decryptOrgKey)
+	orgLLMProviderResolver := llmsettingsUC.NewOrgLLMProviderResolver(orgLLMSettingsRepo, llmConfigMerger, cfg.LLM)
 
 	// --- Services ---
 	jwtService := infraAuth.NewJWTService(cfg.JWT)
@@ -358,7 +376,7 @@ func buildDependencies(
 	lockTTL := time.Duration(cfg.LLM.TimeoutSeconds+30) * time.Second
 	generationLocker := generationUC.NewGenerationLocker(redisClient, lockTTL)
 	generateDocumentUC := generationUC.NewGenerateDocumentUseCase(
-		contextBuilder, promptBuilder, nil, llmProvider, documentRepo, generationLocker, cfg.LLM.Enabled, log,
+		contextBuilder, promptBuilder, orgLLMProviderResolver, llmProvider, documentRepo, generationLocker, cfg.LLM.Enabled, log,
 	)
 	regenerateDocumentUC := generationUC.NewRegenerateDocumentUseCase(generateDocumentUC, documentRepo, workspaceRepo)
 	listDocumentsUC := generationUC.NewListDocumentsUseCase(documentRepo, workspaceRepo)
@@ -426,6 +444,13 @@ func buildDependencies(
 	)
 	deps.ObserveHandler = observeHandler.NewHandler(readinessUC, observeSummaryUC)
 	deps.ExportHandler = exportHandler.NewHandler(exportPackageUC)
+
+	getOrgLLMSettingsUC := llmsettingsUC.NewGetOrgLLMSettingsUseCase(orgLLMSettingsRepo, orgRepo, llmConfigMerger)
+	updateOrgLLMSettingsUC := llmsettingsUC.NewUpdateOrgLLMSettingsUseCase(
+		orgLLMSettingsRepo, orgRepo, llmConfigMerger, encryptOrgKey, orgLLMProviderResolver.Invalidate,
+	)
+	testOrgLLMConnectionUC := llmsettingsUC.NewTestOrgLLMConnectionUseCase(orgLLMSettingsRepo, orgRepo, llmConfigMerger, cfg.LLM)
+	deps.LLMSettingsHandler = llmsettingsHandler.NewHandler(getOrgLLMSettingsUC, updateOrgLLMSettingsUC, testOrgLLMConnectionUC)
 
 	// --- WebSocket real-time hub ---
 	wsHub := infraWS.NewHub(log, cfg.WebSocket.MaxConnections)

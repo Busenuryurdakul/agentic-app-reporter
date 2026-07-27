@@ -32,6 +32,7 @@ type LLMConfig struct {
 	TimeoutSeconds        int
 	MaxRetries            int
 	AllowMockInProduction bool
+	EncryptionKey         string // AES key material for org provider_api_key_enc (falls back to JWT_SECRET)
 }
 
 // IsProduction reports whether the process is running in a production-like environment.
@@ -189,6 +190,7 @@ func Load() *Config {
 			TimeoutSeconds:        envOrDefaultInt("LLM_TIMEOUT_SECONDS", 60),
 			MaxRetries:            envOrDefaultInt("LLM_MAX_RETRIES", 2),
 			AllowMockInProduction: envOrDefault("LLM_ALLOW_MOCK_IN_PRODUCTION", "false") == "true",
+			EncryptionKey:         envOrDefault("LLM_ENCRYPTION_KEY", ""),
 		},
 		Log: LogConfig{
 			Level:  envOrDefault("LOG_LEVEL", "info"),
