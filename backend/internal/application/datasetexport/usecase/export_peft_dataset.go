@@ -229,7 +229,7 @@ func dedupeRows(rows []builtRow, mode exportdto.DedupeMode) ([]builtRow, []expor
 
 	sorted := append([]builtRow(nil), rows...)
 	sort.Slice(sorted, func(i, j int) bool {
-		return approvedTime(sorted[i].doc).After(approvedTime(sorted[j].doc))
+		return compareBuiltRowsForDedupe(sorted[i], sorted[j])
 	})
 
 	skipped := make([]exportdto.SkippedRow, 0)
@@ -239,7 +239,7 @@ func dedupeRows(rows []builtRow, mode exportdto.DedupeMode) ([]builtRow, []expor
 	case exportdto.DedupeWorkspaceLatest:
 		seen := make(map[string]struct{})
 		for _, item := range sorted {
-			key := item.doc.WorkspaceID.String()
+			key := workspaceDedupeKey(item.doc)
 			if _, ok := seen[key]; ok {
 				skipped = append(skipped, exportdto.SkippedRow{
 					DocumentID: item.doc.ID,
@@ -297,4 +297,28 @@ func approvedTime(doc *docModel.GeneratedDocument) time.Time {
 		return doc.ApprovedAt.UTC()
 	}
 	return doc.CreatedAt.UTC()
+}
+
+// compareBuiltRowsForDedupe orders candidates for dedupe: latest approved first, then
+// created_at, then document ID (stable tie-break — never rely on repository or map order).
+func compareBuiltRowsForDedupe(a, b builtRow) bool {
+	ta := approvedTime(a.doc)
+	tb := approvedTime(b.doc)
+	if !ta.Equal(tb) {
+		return ta.After(tb)
+	}
+	ca := a.doc.CreatedAt.UTC()
+	cb := b.doc.CreatedAt.UTC()
+	if !ca.Equal(cb) {
+		return ca.After(cb)
+	}
+	return a.doc.ID.String() > b.doc.ID.String()
+}
+
+func workspaceDedupeKey(doc *docModel.GeneratedDocument) string {
+	docType := strings.TrimSpace(doc.DocumentType)
+	if docType == "" {
+		docType = docModel.DocumentTypeProductSpec
+	}
+	return doc.WorkspaceID.String() + "\x00" + docType
 }

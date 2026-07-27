@@ -182,6 +182,17 @@ func newExportUC(docs []*docModel.GeneratedDocument, reb *stubRebuilder, asm *st
 	return usecase.NewExportPEFTDatasetUseCase(repo, reb, asm), repo
 }
 
+func testExportOpts(orgID uuid.UUID, fn func(*exportdto.ExportOptions)) exportdto.ExportOptions {
+	opts := exportdto.ExportOptions{
+		OrganizationID: orgID,
+		SplitRatio:     1.0,
+	}
+	if fn != nil {
+		fn(&opts)
+	}
+	return opts
+}
+
 func TestExportPEFTDataset_BT1_IncludesOnlyApprovedProductSpec(t *testing.T) {
 	wsID := uuid.New()
 	orgID := uuid.New()
@@ -190,7 +201,7 @@ func TestExportPEFTDataset_BT1_IncludesOnlyApprovedProductSpec(t *testing.T) {
 	doc := testApprovedDoc(wsID, orgID, fp, validProductSpecBody())
 
 	uc, _ := newExportUC([]*docModel.GeneratedDocument{doc}, &stubRebuilder{ctx: wsCtx}, &stubAssembler{})
-	out, err := uc.Execute(context.Background(), exportdto.ExportOptions{OrganizationID: orgID})
+	out, err := uc.Execute(context.Background(), testExportOpts(orgID, nil))
 	require.NoError(t, err)
 	require.Len(t, out.Train, 1)
 	assert.Equal(t, strings.TrimSpace(doc.MarkdownBody), out.Train[0].Messages[2].Content)
@@ -201,7 +212,7 @@ func TestExportPEFTDataset_BT4_SkipsFingerprintMismatch(t *testing.T) {
 	orgID := uuid.New()
 	doc := testApprovedDoc(wsID, orgID, "deadbeef", validProductSpecBody())
 	uc, _ := newExportUC([]*docModel.GeneratedDocument{doc}, &stubRebuilder{ctx: testWSContext(wsID)}, &stubAssembler{})
-	out, err := uc.Execute(context.Background(), exportdto.ExportOptions{OrganizationID: orgID})
+	out, err := uc.Execute(context.Background(), testExportOpts(orgID, nil))
 	require.ErrorIs(t, err, usecase.ErrNoExportRows)
 	require.Len(t, out.Skipped, 1)
 	assert.Equal(t, exportdto.SkipFingerprintMismatch, out.Skipped[0].Reason)
@@ -212,7 +223,7 @@ func TestExportPEFTDataset_BT5_SkipsEmptySourceFingerprintWhenStrict(t *testing.
 	orgID := uuid.New()
 	doc := testApprovedDoc(wsID, orgID, "", validProductSpecBody())
 	uc, _ := newExportUC([]*docModel.GeneratedDocument{doc}, &stubRebuilder{ctx: testWSContext(wsID)}, &stubAssembler{})
-	out, err := uc.Execute(context.Background(), exportdto.ExportOptions{OrganizationID: orgID})
+	out, err := uc.Execute(context.Background(), testExportOpts(orgID, nil))
 	require.ErrorIs(t, err, usecase.ErrNoExportRows)
 	assert.Equal(t, exportdto.SkipEmptyFingerprint, out.Skipped[0].Reason)
 }
@@ -223,10 +234,9 @@ func TestExportPEFTDataset_BT6_IncludesLegacyNoFingerprintWhenFlagSet(t *testing
 	wsCtx := testWSContext(wsID)
 	doc := testApprovedDoc(wsID, orgID, "", validProductSpecBody())
 	uc, _ := newExportUC([]*docModel.GeneratedDocument{doc}, &stubRebuilder{ctx: wsCtx}, &stubAssembler{})
-	out, err := uc.Execute(context.Background(), exportdto.ExportOptions{
-		OrganizationID:             orgID,
-		IncludeLegacyNoFingerprint: true,
-	})
+	out, err := uc.Execute(context.Background(), testExportOpts(orgID, func(o *exportdto.ExportOptions) {
+		o.IncludeLegacyNoFingerprint = true
+	}))
 	require.NoError(t, err)
 	require.Len(t, out.Train, 1)
 }
@@ -237,7 +247,7 @@ func TestExportPEFTDataset_BT7_BuildsThreeMessageRow(t *testing.T) {
 	wsCtx := testWSContext(wsID)
 	doc := testApprovedDoc(wsID, orgID, wsCtx.Fingerprint(), validProductSpecBody())
 	uc, _ := newExportUC([]*docModel.GeneratedDocument{doc}, &stubRebuilder{ctx: wsCtx}, &stubAssembler{system: "sys", user: "usr"})
-	out, err := uc.Execute(context.Background(), exportdto.ExportOptions{OrganizationID: orgID})
+	out, err := uc.Execute(context.Background(), testExportOpts(orgID, nil))
 	require.NoError(t, err)
 	require.Len(t, out.Train, 1)
 	msgs := out.Train[0].Messages
@@ -255,7 +265,7 @@ func TestExportPEFTDataset_BT8_AssistantContentEqualsMarkdownBody(t *testing.T) 
 	body := validProductSpecBody()
 	doc := testApprovedDoc(wsID, orgID, wsCtx.Fingerprint(), body)
 	uc, _ := newExportUC([]*docModel.GeneratedDocument{doc}, &stubRebuilder{ctx: wsCtx}, &stubAssembler{})
-	out, err := uc.Execute(context.Background(), exportdto.ExportOptions{OrganizationID: orgID})
+	out, err := uc.Execute(context.Background(), testExportOpts(orgID, nil))
 	require.NoError(t, err)
 	assert.Equal(t, strings.TrimSpace(body), out.Train[0].Messages[2].Content)
 }
@@ -266,7 +276,7 @@ func TestExportPEFTDataset_BT9_SkipsEmptyAssistantBody(t *testing.T) {
 	wsCtx := testWSContext(wsID)
 	doc := testApprovedDoc(wsID, orgID, wsCtx.Fingerprint(), "   ")
 	uc, _ := newExportUC([]*docModel.GeneratedDocument{doc}, &stubRebuilder{ctx: wsCtx}, &stubAssembler{})
-	out, err := uc.Execute(context.Background(), exportdto.ExportOptions{OrganizationID: orgID})
+	out, err := uc.Execute(context.Background(), testExportOpts(orgID, nil))
 	require.ErrorIs(t, err, usecase.ErrNoExportRows)
 	assert.Equal(t, exportdto.SkipEmptyAssistant, out.Skipped[0].Reason)
 }
@@ -289,7 +299,7 @@ func TestExportPEFTDataset_BT11_SkipsWhenSectionCoverageFails(t *testing.T) {
 	body := "# Title\n" + strings.Repeat("long body without sections ", 15)
 	doc := testApprovedDoc(wsID, orgID, wsCtx.Fingerprint(), body)
 	uc, _ := newExportUC([]*docModel.GeneratedDocument{doc}, &stubRebuilder{ctx: wsCtx}, &stubAssembler{})
-	out, err := uc.Execute(context.Background(), exportdto.ExportOptions{OrganizationID: orgID})
+	out, err := uc.Execute(context.Background(), testExportOpts(orgID, nil))
 	require.ErrorIs(t, err, usecase.ErrNoExportRows)
 	assert.Equal(t, exportdto.SkipSectionCoverage, out.Skipped[0].Reason)
 }
@@ -301,11 +311,10 @@ func TestExportPEFTDataset_BT12_AllowLowQualityBypassesSectionCoverage(t *testin
 	body := "# Title\n" + strings.Repeat("long body without sections ", 15)
 	doc := testApprovedDoc(wsID, orgID, wsCtx.Fingerprint(), body)
 	uc, _ := newExportUC([]*docModel.GeneratedDocument{doc}, &stubRebuilder{ctx: wsCtx}, &stubAssembler{})
-	out, err := uc.Execute(context.Background(), exportdto.ExportOptions{
-		OrganizationID:  orgID,
-		AllowLowQuality: true,
-		MinQualityScore: 50,
-	})
+	out, err := uc.Execute(context.Background(), testExportOpts(orgID, func(o *exportdto.ExportOptions) {
+		o.AllowLowQuality = true
+		o.MinQualityScore = 50
+	}))
 	require.NoError(t, err)
 	require.Len(t, out.Train, 1)
 }
@@ -323,32 +332,125 @@ func TestExportPEFTDataset_BT13_DedupeFingerprintKeepsLatestApproved(t *testing.
 	out, err := uc.Execute(context.Background(), exportdto.ExportOptions{
 		OrganizationID: orgID,
 		Dedupe:         exportdto.DedupeFingerprint,
+		SplitRatio:     1.0,
 	})
 	require.NoError(t, err)
+	require.Equal(t, 1, out.Manifest.Counts.Exported)
 	require.Len(t, out.Train, 1)
 	assert.Contains(t, out.Train[0].Messages[2].Content, "newer")
 	assert.Equal(t, 1, out.Manifest.SkipReasons[string(exportdto.SkipDuplicateFingerprint)])
 }
 
 func TestExportPEFTDataset_BT14_DedupeWorkspaceLatest(t *testing.T) {
-	orgID := uuid.New()
-	ws1 := uuid.New()
-	ws2 := uuid.New()
-	ctx1 := testWSContext(ws1)
-	ctx2 := testWSContext(ws2)
-	d1 := testApprovedDoc(ws1, orgID, ctx1.Fingerprint(), validProductSpecBody())
-	d2 := testApprovedDoc(ws2, orgID, ctx2.Fingerprint(), validProductSpecBody())
-	repo := new(mockPEFTDocRepo)
-	repo.On("ListForPEFTExport", mock.Anything, mock.Anything).Return([]*docModel.GeneratedDocument{d1, d2}, nil)
-	uc := usecase.NewExportPEFTDatasetUseCase(repo, &multiRebuilder{
-		contexts: map[uuid.UUID]*generationUC.WorkspaceLLMContext{ws1: ctx1, ws2: ctx2},
-	}, &stubAssembler{})
-	out, err := uc.Execute(context.Background(), exportdto.ExportOptions{
-		OrganizationID: orgID,
-		Dedupe:         exportdto.DedupeWorkspaceLatest,
+	t.Run("different workspaces both export", func(t *testing.T) {
+		orgID := uuid.New()
+		ws1 := uuid.New()
+		ws2 := uuid.New()
+		ctx1 := testWSContext(ws1)
+		ctx2 := testWSContext(ws2)
+		d1 := testApprovedDoc(ws1, orgID, ctx1.Fingerprint(), validProductSpecBody())
+		d2 := testApprovedDoc(ws2, orgID, ctx2.Fingerprint(), validProductSpecBody())
+		repo := new(mockPEFTDocRepo)
+		repo.On("ListForPEFTExport", mock.Anything, mock.Anything).Return([]*docModel.GeneratedDocument{d1, d2}, nil)
+		uc := usecase.NewExportPEFTDatasetUseCase(repo, &multiRebuilder{
+			contexts: map[uuid.UUID]*generationUC.WorkspaceLLMContext{ws1: ctx1, ws2: ctx2},
+		}, &stubAssembler{})
+		out, err := uc.Execute(context.Background(), exportdto.ExportOptions{
+			OrganizationID: orgID,
+			Dedupe:         exportdto.DedupeWorkspaceLatest,
+			SplitRatio:     1.0,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, 2, out.Manifest.Counts.Exported)
+		assert.Equal(t, 2, len(out.Train)+len(out.Val))
 	})
-	require.NoError(t, err)
-	assert.Len(t, out.Train, 2)
+
+	t.Run("same workspace keeps latest approved", func(t *testing.T) {
+		orgID := uuid.New()
+		wsID := uuid.New()
+		wsCtx := testWSContext(wsID)
+		fp := wsCtx.Fingerprint()
+		older := testApprovedDoc(wsID, orgID, fp, validProductSpecBody())
+		old := time.Now().UTC().Add(-2 * time.Hour)
+		older.ApprovedAt = &old
+		newer := testApprovedDoc(wsID, orgID, fp, validProductSpecBody()+"\n<!-- newer -->")
+		uc, _ := newExportUC([]*docModel.GeneratedDocument{older, newer}, &stubRebuilder{ctx: wsCtx}, &stubAssembler{})
+		out, err := uc.Execute(context.Background(), exportdto.ExportOptions{
+			OrganizationID: orgID,
+			Dedupe:         exportdto.DedupeWorkspaceLatest,
+			SplitRatio:     1.0,
+		})
+		require.NoError(t, err)
+		require.Equal(t, 1, out.Manifest.Counts.Exported)
+		assert.Equal(t, newer.ID, out.Train[0].Metadata.DocumentID)
+		assert.Contains(t, out.Train[0].Messages[2].Content, "newer")
+		assert.Equal(t, 1, out.Manifest.SkipReasons[string(exportdto.SkipDuplicateFingerprint)])
+	})
+
+	t.Run("repository reverse order still keeps latest", func(t *testing.T) {
+		orgID := uuid.New()
+		wsID := uuid.New()
+		wsCtx := testWSContext(wsID)
+		fp := wsCtx.Fingerprint()
+		older := testApprovedDoc(wsID, orgID, fp, validProductSpecBody())
+		old := time.Now().UTC().Add(-2 * time.Hour)
+		older.ApprovedAt = &old
+		newer := testApprovedDoc(wsID, orgID, fp, validProductSpecBody()+"\n<!-- newer -->")
+		// Repository returns oldest first (opposite of SQL ORDER BY intent).
+		uc, _ := newExportUC([]*docModel.GeneratedDocument{newer, older}, &stubRebuilder{ctx: wsCtx}, &stubAssembler{})
+		out, err := uc.Execute(context.Background(), exportdto.ExportOptions{
+			OrganizationID: orgID,
+			Dedupe:         exportdto.DedupeWorkspaceLatest,
+			SplitRatio:     1.0,
+		})
+		require.NoError(t, err)
+		require.Equal(t, 1, out.Manifest.Counts.Exported)
+		assert.Equal(t, newer.ID, out.Train[0].Metadata.DocumentID)
+	})
+
+	t.Run("equal approved_at uses deterministic tie-break", func(t *testing.T) {
+		orgID := uuid.New()
+		wsID := uuid.New()
+		wsCtx := testWSContext(wsID)
+		fp := wsCtx.Fingerprint()
+		ts := time.Now().UTC().Truncate(time.Second)
+		lowID := uuid.MustParse("00000000-0000-4000-8000-000000000001")
+		highID := uuid.MustParse("00000000-0000-4000-8000-000000000099")
+		low := testApprovedDoc(wsID, orgID, fp, validProductSpecBody()+"\n<!-- low -->")
+		low.ID = lowID
+		low.ApprovedAt = &ts
+		low.CreatedAt = ts
+		high := testApprovedDoc(wsID, orgID, fp, validProductSpecBody()+"\n<!-- high -->")
+		high.ID = highID
+		high.ApprovedAt = &ts
+		high.CreatedAt = ts
+		uc, _ := newExportUC([]*docModel.GeneratedDocument{low, high}, &stubRebuilder{ctx: wsCtx}, &stubAssembler{})
+		out, err := uc.Execute(context.Background(), exportdto.ExportOptions{
+			OrganizationID: orgID,
+			Dedupe:         exportdto.DedupeWorkspaceLatest,
+			SplitRatio:     1.0,
+		})
+		require.NoError(t, err)
+		require.Equal(t, 1, out.Manifest.Counts.Exported)
+		assert.Equal(t, highID, out.Train[0].Metadata.DocumentID)
+	})
+
+	t.Run("different document type does not dedupe each other", func(t *testing.T) {
+		orgID := uuid.New()
+		wsID := uuid.New()
+		wsCtx := testWSContext(wsID)
+		spec := testApprovedDoc(wsID, orgID, wsCtx.Fingerprint(), validProductSpecBody())
+		studio := testApprovedDoc(wsID, orgID, wsCtx.Fingerprint(), validProductSpecBody()+"\n<!-- studio -->")
+		studio.DocumentType = docModel.DocumentTypeStudioMarkdown
+		uc, _ := newExportUC([]*docModel.GeneratedDocument{spec, studio}, &stubRebuilder{ctx: wsCtx}, &stubAssembler{})
+		out, err := uc.Execute(context.Background(), exportdto.ExportOptions{
+			OrganizationID: orgID,
+			Dedupe:         exportdto.DedupeWorkspaceLatest,
+			SplitRatio:     1.0,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, 2, out.Manifest.Counts.Exported)
+	})
 }
 
 func TestExportPEFTDataset_BT15_SplitByWorkspaceNoLeakage(t *testing.T) {
@@ -383,7 +485,7 @@ func TestExportPEFTDataset_BT16_RedactsSecretsInUserPrompt(t *testing.T) {
 	uc, _ := newExportUC([]*docModel.GeneratedDocument{doc}, &stubRebuilder{ctx: wsCtx}, &stubAssembler{
 		user: `{"api_key":"***","model":"gemma"}`,
 	})
-	out, err := uc.Execute(context.Background(), exportdto.ExportOptions{OrganizationID: orgID})
+	out, err := uc.Execute(context.Background(), testExportOpts(orgID, nil))
 	require.NoError(t, err)
 	assert.Contains(t, out.Train[0].Messages[1].Content, `"api_key":"***"`)
 	assert.NotContains(t, out.Train[0].Messages[1].Content, `"api_key":"sk-`)
@@ -396,7 +498,7 @@ func TestExportPEFTDataset_BT17_SkipsWhenWorkspaceNotFound(t *testing.T) {
 	uc, _ := newExportUC([]*docModel.GeneratedDocument{doc}, &stubRebuilder{
 		err: domainErr.New(domainErr.ErrNotFound, "workspace not found", nil),
 	}, &stubAssembler{})
-	out, err := uc.Execute(context.Background(), exportdto.ExportOptions{OrganizationID: orgID})
+	out, err := uc.Execute(context.Background(), testExportOpts(orgID, nil))
 	require.ErrorIs(t, err, usecase.ErrNoExportRows)
 	assert.Equal(t, exportdto.SkipWorkspaceNotFound, out.Skipped[0].Reason)
 }
@@ -422,7 +524,7 @@ func TestExportPEFTDataset_BT19_EmptyCandidatesReturnsErrNoRows(t *testing.T) {
 	repo := new(mockPEFTDocRepo)
 	repo.On("ListForPEFTExport", mock.Anything, mock.Anything).Return([]*docModel.GeneratedDocument{}, nil)
 	uc := usecase.NewExportPEFTDatasetUseCase(repo, &stubRebuilder{}, &stubAssembler{})
-	out, err := uc.Execute(context.Background(), exportdto.ExportOptions{OrganizationID: orgID})
+	out, err := uc.Execute(context.Background(), testExportOpts(orgID, nil))
 	require.ErrorIs(t, err, usecase.ErrNoExportRows)
 	assert.Equal(t, 0, out.Manifest.Counts.Candidates)
 }
