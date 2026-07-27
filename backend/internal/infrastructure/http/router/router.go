@@ -18,6 +18,7 @@ import (
 	generationHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/generation"
 	"github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/health"
 	iamHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/iam"
+	llmsettingsHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/llmsettings"
 	observeHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/observe"
 	projectprofileHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/projectprofile"
 	questionnaireHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/questionnaire"
@@ -65,6 +66,7 @@ type Dependencies struct {
 	ProjectProfileHandler *projectprofileHandler.Handler
 	QuestionnaireHandler  *questionnaireHandler.Handler
 	GenerationHandler     *generationHandler.Handler
+	LLMSettingsHandler    *llmsettingsHandler.Handler
 	ObserveHandler        *observeHandler.Handler
 	ExportHandler         *exportHandler.Handler
 
@@ -198,6 +200,15 @@ func New(deps Dependencies) *chi.Mux {
 						// Audit logs under organization
 						if deps.AuditHandler != nil {
 							r.With(maybeRequirePermission(deps.RBACService, "org:read")).Get("/audit-logs", deps.AuditHandler.ListByOrg)
+						}
+
+						// Organization LLM provider settings
+						if deps.LLMSettingsHandler != nil {
+							r.Route("/llm-settings", func(r chi.Router) {
+								r.With(maybeRequirePermission(deps.RBACService, "llm:read")).Get("/", deps.LLMSettingsHandler.GetSettings)
+								r.With(maybeRequirePermission(deps.RBACService, "llm:write")).Put("/", deps.LLMSettingsHandler.UpdateSettings)
+								r.With(maybeRequirePermission(deps.RBACService, "llm:read")).Post("/test", deps.LLMSettingsHandler.TestConnection)
+							})
 						}
 					})
 				})

@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "installCommand": "npm ci --prefix frontend",
+  "installCommand": "npm ci --prefix frontend && npm install --no-package-lock --ignore-scripts",
   "buildCommand": "npm run build --prefix frontend",
   "outputDirectory": "frontend/.next"
 }
