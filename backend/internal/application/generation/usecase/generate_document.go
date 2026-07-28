@@ -108,6 +108,23 @@ func (uc *GenerateDocumentUseCase) Execute(
 		return nil, domainErr.New(domainErr.ErrInternal, "failed to build prompt", err)
 	}
 
+	answeredCount := 0
+	for _, a := range wsCtx.Answers {
+		if a.Answered {
+			answeredCount++
+		}
+	}
+	uc.logger.Info("llm generate prompt metrics",
+		"organization_id", wsCtx.OrganizationID.String(),
+		"workspace_id", workspaceID.String(),
+		"document_type", docType,
+		"system_prompt_chars", len(prompt.SystemPrompt),
+		"user_prompt_chars", len(prompt.UserPrompt),
+		"total_prompt_chars", len(prompt.SystemPrompt)+len(prompt.UserPrompt),
+		"question_count", len(wsCtx.Answers),
+		"answer_count", answeredCount,
+	)
+
 	title := resolveDocumentTitle(req.Title, wsCtx.Language, docType)
 	var createdBy *uuid.UUID
 	if uid, ok := middleware.UserIDFromContext(ctx); ok {
@@ -267,6 +284,8 @@ func clientMessageForProviderCode(code string) string {
 	switch code {
 	case domainErr.ProviderCodeInvalidRequest:
 		return "LLM provider rejected the request (invalid request or context too long)"
+	case domainErr.ProviderCodeContextLength:
+		return "LLM provider rejected the request (context length exceeded)"
 	case domainErr.ProviderCodeAuth:
 		return "LLM provider authentication or model access failed"
 	case domainErr.ProviderCodeNotFound:

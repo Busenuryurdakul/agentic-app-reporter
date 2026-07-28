@@ -289,6 +289,9 @@ func buildDependencies(
 	log.Info("llm provider configured",
 		"provider", llmProvider.Name(),
 		"enabled", cfg.LLM.Enabled,
+		"model", cfg.LLM.Model,
+		"base_url_host", config.SanitizedLLMBaseURLHost(cfg.LLM.BaseURL),
+		"config_source", "environment",
 	)
 
 	if db == nil {
@@ -326,6 +329,7 @@ func buildDependencies(
 	}
 	llmConfigMerger := llmsettingsUC.NewEffectiveLLMConfigMerger(cfg.LLM, cfg.IsProduction(), decryptOrgKey)
 	orgLLMProviderResolver := llmsettingsUC.NewOrgLLMProviderResolver(orgLLMSettingsRepo, llmConfigMerger, cfg.LLM)
+	providerHealthUC = generationUC.NewProviderHealthUseCaseWithResolver(llmProvider, orgLLMProviderResolver, cfg.LLM.Enabled)
 
 	// --- Services ---
 	jwtService := infraAuth.NewJWTService(cfg.JWT)

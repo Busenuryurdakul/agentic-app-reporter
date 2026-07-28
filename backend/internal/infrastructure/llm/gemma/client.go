@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/masterfabric-go/masterfabric/internal/domain/llm"
+	"github.com/masterfabric-go/masterfabric/internal/shared/config"
 	domainErr "github.com/masterfabric-go/masterfabric/internal/shared/errors"
 )
 
@@ -25,11 +26,13 @@ const (
 // (Ollama, vLLM, Google OpenAI-compatible proxies, etc.).
 // Business logic must depend only on llm.LLMProvider — never on this package.
 type Client struct {
-	baseURL      string
-	apiKey       string
-	model        string
-	providerName string
-	httpClient   *http.Client
+	baseURL              string
+	apiKey               string
+	model                string
+	providerName         string
+	useNativeChatRoles   bool
+	includeStreamFalse   bool
+	httpClient           *http.Client
 }
 
 // Config configures a Gemma HTTP client.
@@ -41,6 +44,10 @@ type Config struct {
 	HTTPClient     *http.Client
 	// ProviderName labels user-facing errors (defaults to "gemma"; Ollama passes "ollama").
 	ProviderName string
+	// UseNativeChatRoles sends separate system/user messages (Ollama-compatible).
+	UseNativeChatRoles bool
+	// IncludeStreamFalse sets stream=false on chat completion requests (Ollama OpenAI API).
+	IncludeStreamFalse bool
 }
 
 // New creates a Gemma provider client. BaseURL is required (e.g. http://localhost:11434/v1).
@@ -66,23 +73,26 @@ func New(cfg Config) (*Client, error) {
 		httpClient = &http.Client{Timeout: timeout}
 	}
 	return &Client{
-		baseURL:      base,
-		apiKey:       strings.TrimSpace(cfg.APIKey),
-		model:        model,
-		providerName: providerName,
-		httpClient:   httpClient,
+		baseURL:            base,
+		apiKey:             strings.TrimSpace(cfg.APIKey),
+		model:              model,
+		providerName:       providerName,
+		useNativeChatRoles: cfg.UseNativeChatRoles,
+		includeStreamFalse: cfg.IncludeStreamFalse,
+		httpClient:         httpClient,
 	}, nil
 }
 
 // Name implements llm.LLMProvider.
 func (c *Client) Name() string {
-	return llm.ProviderGemma
+	return c.providerName
 }
 
 type chatRequest struct {
-	Model     string        `json:"model"`
-	Messages  []chatMessage `json:"messages"`
-	MaxTokens int           `json:"max_tokens,omitempty"`
+	Model     string         `json:"model"`
+	Messages  []chatMessage  `json:"messages"`
+	MaxTokens int            `json:"max_tokens,omitempty"`
+	Stream    *bool          `json:"stream,omitempty"`
 }
 
 type chatMessage struct {
@@ -114,22 +124,33 @@ func (c *Client) Generate(ctx context.Context, req llm.GenerateRequest) (llm.Gen
 	if err := ctx.Err(); err != nil {
 		return llm.GenerateResponse{}, err
 	}
+	if strings.TrimSpace(c.model) == "" {
+		return llm.GenerateResponse{}, domainErr.New(domainErr.ErrValidation, "LLM model is not configured", nil)
+	}
 
-	messages := buildChatMessages(req)
+	messages := buildChatMessages(req, c.useNativeChatRoles)
+	if len(messages) == 0 || strings.TrimSpace(messages[len(messages)-1].Content) == "" {
+		return llm.GenerateResponse{}, domainErr.New(domainErr.ErrValidation, "LLM prompt is empty", nil)
+	}
 
 	body := chatRequest{
 		Model:     c.model,
 		Messages:  messages,
 		MaxTokens: req.MaxTokens,
 	}
+	if c.includeStreamFalse {
+		stream := false
+		body.Stream = &stream
+	}
 	payload, err := json.Marshal(body)
 	if err != nil {
-		return llm.GenerateResponse{}, domainErr.New(domainErr.ErrInternal, "failed to encode gemma request", err)
+		return llm.GenerateResponse{}, domainErr.New(domainErr.ErrInternal, "failed to encode llm request", err)
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/chat/completions", bytes.NewReader(payload))
+	endpointPath := "/chat/completions"
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+endpointPath, bytes.NewReader(payload))
 	if err != nil {
-		return llm.GenerateResponse{}, domainErr.New(domainErr.ErrInternal, "failed to create gemma request", err)
+		return llm.GenerateResponse{}, domainErr.New(domainErr.ErrInternal, "failed to create llm request", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 	c.setAuth(httpReq)
@@ -147,11 +168,11 @@ func (c *Client) Generate(ctx context.Context, req llm.GenerateRequest) (llm.Gen
 
 	raw, err := io.ReadAll(io.LimitReader(resp.Body, 8<<20))
 	if err != nil {
-		return llm.GenerateResponse{}, domainErr.New(domainErr.ErrInternal, "failed to read gemma response", err)
+		return llm.GenerateResponse{}, domainErr.New(domainErr.ErrInternal, "failed to read llm response", err)
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return llm.GenerateResponse{}, c.logAndWrapChatCompletionError(resp.StatusCode, raw, duration)
+		return llm.GenerateResponse{}, c.logAndWrapChatCompletionError(endpointPath, resp.StatusCode, raw, duration)
 	}
 
 	var parsed chatResponse
@@ -161,12 +182,13 @@ func (c *Client) Generate(ctx context.Context, req llm.GenerateRequest) (llm.Gen
 	if parsed.Error != nil && parsed.Error.Message != "" {
 		summary := sanitizeResponseBody([]byte(parsed.Error.Message))
 		slog.Error("llm provider chat completion failed",
-			"provider", c.Name(),
+			"provider", c.providerName,
 			"http_status", resp.StatusCode,
+			"endpoint_path", endpointPath,
 			"provider_error_code", domainErr.ProviderCodeUpstream,
 			"response_body_summary", summary,
 			"model", c.model,
-			"base_url", c.baseURL,
+			"base_url_host", config.SanitizedLLMBaseURLHost(c.baseURL),
 			"duration_ms", duration.Milliseconds(),
 		)
 		return llm.GenerateResponse{}, domainErr.NewWithProvider(
@@ -204,9 +226,10 @@ func (c *Client) Health(ctx context.Context) (llm.ProviderHealth, error) {
 		return llm.ProviderHealth{}, err
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/models", nil)
+	endpointPath := "/models"
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+endpointPath, nil)
 	if err != nil {
-		return llm.ProviderHealth{}, domainErr.New(domainErr.ErrInternal, "failed to create gemma health request", err)
+		return llm.ProviderHealth{}, domainErr.New(domainErr.ErrInternal, "failed to create llm health request", err)
 	}
 	c.setAuth(httpReq)
 
@@ -216,37 +239,57 @@ func (c *Client) Health(ctx context.Context) (llm.ProviderHealth, error) {
 			return llm.ProviderHealth{}, ctx.Err()
 		}
 		return llm.ProviderHealth{
-			Provider: c.Name(),
+			Provider: c.providerName,
 			Healthy:  false,
 			Message:  c.providerName + " provider unreachable",
 		}, nil
 	}
 	defer resp.Body.Close()
-	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, maxErrorBodyBytes))
+	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 64<<10))
 
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-		return llm.ProviderHealth{Provider: c.Name(), Healthy: true, Message: "ok"}, nil
+		if msg := modelAvailabilityMessage(c.model, raw); msg != "" {
+			return llm.ProviderHealth{
+				Provider: c.providerName,
+				Healthy:  false,
+				Message:  msg,
+			}, nil
+		}
+		return llm.ProviderHealth{Provider: c.providerName, Healthy: true, Message: "ok"}, nil
 	}
 	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
 		return llm.ProviderHealth{
-			Provider: c.Name(),
+			Provider: c.providerName,
 			Healthy:  false,
 			Message:  c.providerName + " provider authentication failed",
 		}, nil
 	}
 	return llm.ProviderHealth{
-		Provider: c.Name(),
+		Provider: c.providerName,
 		Healthy:  false,
 		Message:  fmt.Sprintf("%s provider unhealthy (HTTP %d)", c.providerName, resp.StatusCode),
 	}, nil
 }
 
-func buildChatMessages(req llm.GenerateRequest) []chatMessage {
+func buildChatMessages(req llm.GenerateRequest, useNativeRoles bool) []chatMessage {
 	user := strings.TrimSpace(req.UserPrompt)
 	system := strings.TrimSpace(req.SystemPrompt)
+	if useNativeRoles {
+		out := make([]chatMessage, 0, 2)
+		if system != "" {
+			out = append(out, chatMessage{Role: "system", Content: system})
+		}
+		if user != "" {
+			out = append(out, chatMessage{Role: "user", Content: user})
+		}
+		return out
+	}
 	if system != "" {
 		// Hugging Face Inference router and some OpenAI-compatible hosts reject role=system.
 		user = system + "\n\n" + user
+	}
+	if strings.TrimSpace(user) == "" {
+		return nil
 	}
 	return []chatMessage{{Role: "user", Content: user}}
 }
@@ -264,6 +307,48 @@ func truncateForError(b []byte) string {
 		return s[:maxErrorBodyBytes] + "…"
 	}
 	return s
+}
+
+type modelsListResponse struct {
+	Data []struct {
+		ID string `json:"id"`
+	} `json:"data"`
+}
+
+func modelAvailabilityMessage(model string, raw []byte) string {
+	model = strings.TrimSpace(model)
+	if model == "" {
+		return "LLM model is not configured"
+	}
+
+	var listed modelsListResponse
+	if err := json.Unmarshal(raw, &listed); err != nil || len(listed.Data) == 0 {
+		return ""
+	}
+
+	for _, item := range listed.Data {
+		if modelsMatch(model, item.ID) {
+			return ""
+		}
+	}
+	return fmt.Sprintf("configured model %q is not available from provider", model)
+}
+
+func modelsMatch(configured, listed string) bool {
+	configured = normalizeModelID(configured)
+	listed = normalizeModelID(listed)
+	return configured != "" && configured == listed
+}
+
+func normalizeModelID(model string) string {
+	model = strings.TrimSpace(strings.ToLower(model))
+	if model == "" {
+		return ""
+	}
+	if idx := strings.Index(model, ":"); idx > 0 {
+		return model[:idx]
+	}
+	return model
 }
 
 var _ llm.LLMProvider = (*Client)(nil)

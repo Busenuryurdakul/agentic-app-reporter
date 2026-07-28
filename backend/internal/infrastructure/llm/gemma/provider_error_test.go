@@ -40,3 +40,12 @@ func TestSanitizeResponseBody_RedactsSecrets(t *testing.T) {
 	assert.NotContains(t, out, "secret-token-value")
 	assert.Contains(t, out, "[REDACTED]")
 }
+
+func TestClassifyProviderErrorBody_ContextLength(t *testing.T) {
+	t.Parallel()
+
+	code, msg, ok := classifyProviderErrorBody("ollama", []byte(`{"error":{"message":"context length exceeded"}}`))
+	assert.True(t, ok)
+	assert.Equal(t, domainErr.ProviderCodeContextLength, code)
+	assert.Contains(t, msg, "context length")
+}

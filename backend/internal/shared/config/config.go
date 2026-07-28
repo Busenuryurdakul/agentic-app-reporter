@@ -247,6 +247,14 @@ func ValidateLLMConfig(cfg LLMConfig, production bool) error {
 		return fmt.Errorf("LLM_MAX_RETRIES must be >= 0")
 	}
 
+	if production && strings.TrimSpace(cfg.Model) == "" {
+		return fmt.Errorf("LLM_MODEL is required when LLM_ENABLED=true in production")
+	}
+
+	if err := validateProviderBaseURLCompatibility(name, cfg.BaseURL); err != nil {
+		return err
+	}
+
 	if production && name == "mock" && !cfg.AllowMockInProduction {
 		return fmt.Errorf("LLM_PROVIDER=mock is not allowed in production; set LLM_ALLOW_MOCK_IN_PRODUCTION=true to override")
 	}
@@ -256,6 +264,53 @@ func ValidateLLMConfig(cfg LLMConfig, production bool) error {
 
 // isForbiddenProductionLLMHost reports whether baseURL points at a loopback or
 // Docker-host alias that Render/production cannot reach.
+func validateProviderBaseURLCompatibility(provider, baseURL string) error {
+	baseURL = strings.TrimSpace(baseURL)
+	if baseURL == "" {
+		return nil
+	}
+
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return fmt.Errorf("LLM_BASE_URL is invalid: %w", err)
+	}
+
+	host := strings.ToLower(strings.TrimSpace(u.Hostname()))
+	if host == "" {
+		return fmt.Errorf("LLM_BASE_URL must include a host")
+	}
+
+	switch provider {
+	case "ollama":
+		if isHuggingFaceInferenceHost(host) {
+			return fmt.Errorf(
+				"LLM_BASE_URL host %q is incompatible with LLM_PROVIDER=ollama; set LLM_BASE_URL to your Ollama VPS OpenAI endpoint (/v1)",
+				host,
+			)
+		}
+	}
+
+	return nil
+}
+
+func isHuggingFaceInferenceHost(host string) bool {
+	switch host {
+	case "huggingface.co", "router.huggingface.co", "api-inference.huggingface.co":
+		return true
+	default:
+		return strings.HasSuffix(host, ".huggingface.co")
+	}
+}
+
+// SanitizedLLMBaseURLHost returns the hostname for logs (never includes credentials or query params).
+func SanitizedLLMBaseURLHost(baseURL string) string {
+	u, err := url.Parse(strings.TrimSpace(baseURL))
+	if err != nil || u.Hostname() == "" {
+		return "[invalid]"
+	}
+	return u.Hostname()
+}
+
 func isForbiddenProductionLLMHost(baseURL string) bool {
 	u, err := url.Parse(strings.TrimSpace(baseURL))
 	if err != nil || u.Host == "" {

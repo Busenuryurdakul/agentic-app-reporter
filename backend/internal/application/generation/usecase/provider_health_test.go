@@ -5,7 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/masterfabric-go/masterfabric/internal/domain/llm"
 	"github.com/masterfabric-go/masterfabric/internal/infrastructure/llm/mock"
+	domainErr "github.com/masterfabric-go/masterfabric/internal/shared/errors"
+	"github.com/masterfabric-go/masterfabric/internal/shared/middleware"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -44,4 +48,32 @@ func TestProviderHealth_ContextCanceled(t *testing.T) {
 	uc := NewProviderHealthUseCase(mock.New(mock.WithDelay(2*time.Second)), true)
 	_, err := uc.Execute(ctx)
 	require.Error(t, err)
+}
+
+func TestProviderHealth_UsesOrgResolverWhenOrgContextPresent(t *testing.T) {
+	orgID := uuid.New()
+	defaultProvider := mock.New(mock.WithHealthError(mock.ErrHealthFailed))
+	orgProvider := mock.New()
+	uc := NewProviderHealthUseCaseWithResolver(defaultProvider, &stubProviderResolver{
+		provider: orgProvider,
+		orgID:    orgID,
+	}, true)
+
+	ctx := context.WithValue(context.Background(), middleware.ContextKeyTenantID, orgID)
+	info, err := uc.Execute(ctx)
+	require.NoError(t, err)
+	assert.True(t, info.Healthy)
+	assert.Equal(t, "mock", info.Provider)
+}
+
+type stubProviderResolver struct {
+	provider llm.LLMProvider
+	orgID    uuid.UUID
+}
+
+func (s *stubProviderResolver) Resolve(ctx context.Context, orgID uuid.UUID) (llm.LLMProvider, error) {
+	if orgID != s.orgID {
+		return nil, domainErr.New(domainErr.ErrForbidden, "org mismatch", nil)
+	}
+	return s.provider, nil
 }
