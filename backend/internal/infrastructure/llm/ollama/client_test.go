@@ -28,9 +28,11 @@ func TestNew_DefaultsBaseURLAndModel(t *testing.T) {
 }
 
 func TestClient_GenerateAndHealth(t *testing.T) {
+	var gotBody map[string]any
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/v1/chat/completions":
+			require.NoError(t, json.NewDecoder(r.Body).Decode(&gotBody))
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"model": "llama3.2",
 				"choices": []map[string]any{
@@ -39,6 +41,7 @@ func TestClient_GenerateAndHealth(t *testing.T) {
 			})
 		case "/v1/models":
 			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"data":[{"id":"llama3.2"}]}`))
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -51,10 +54,18 @@ func TestClient_GenerateAndHealth(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	resp, err := c.Generate(context.Background(), llm.GenerateRequest{UserPrompt: "hello"})
+	resp, err := c.Generate(context.Background(), llm.GenerateRequest{
+		SystemPrompt: "sys",
+		UserPrompt:   "hello",
+	})
 	require.NoError(t, err)
 	assert.Equal(t, llm.ProviderOllama, resp.Provider)
 	assert.Contains(t, resp.Content, "# Doc")
+	assert.Equal(t, "llama3.2", gotBody["model"])
+	assert.Equal(t, false, gotBody["stream"])
+	messages, ok := gotBody["messages"].([]any)
+	require.True(t, ok)
+	require.Len(t, messages, 2)
 
 	h, err := c.Health(context.Background())
 	require.NoError(t, err)

@@ -24,12 +24,13 @@ var (
 
 // Provider error codes exposed to API clients when upstream LLM calls fail.
 const (
-	ProviderCodeInvalidRequest = "provider_invalid_request"
-	ProviderCodeAuth           = "provider_auth"
-	ProviderCodeNotFound       = "provider_not_found"
-	ProviderCodeRateLimited    = "provider_rate_limited"
-	ProviderCodeQuota          = "provider_quota"
-	ProviderCodeUpstream       = "provider_upstream"
+	ProviderCodeInvalidRequest  = "provider_invalid_request"
+	ProviderCodeContextLength   = "provider_context_length"
+	ProviderCodeAuth            = "provider_auth"
+	ProviderCodeNotFound        = "provider_not_found"
+	ProviderCodeRateLimited     = "provider_rate_limited"
+	ProviderCodeQuota           = "provider_quota"
+	ProviderCodeUpstream        = "provider_upstream"
 )
 
 // DomainError is a structured error with an underlying cause and a message.

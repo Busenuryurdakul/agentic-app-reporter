@@ -89,7 +89,7 @@ func TestClient_GenerateBadRequestClassified(t *testing.T) {
 
 	var de *domainErr.DomainError
 	require.ErrorAs(t, err, &de)
-	assert.Equal(t, domainErr.ProviderCodeInvalidRequest, de.ProviderCode)
+	assert.Equal(t, domainErr.ProviderCodeContextLength, de.ProviderCode)
 	assert.ErrorIs(t, err, domainErr.ErrBadRequest)
 }
 
@@ -130,16 +130,51 @@ func TestClient_HealthOK(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/v1/models", r.URL.Path)
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"data":[]}`))
+		_, _ = w.Write([]byte(`{"data":[{"id":"gemma-test"}]}`))
 	}))
 	defer srv.Close()
 
-	c, err := New(Config{BaseURL: srv.URL + "/v1", HTTPClient: srv.Client()})
+	c, err := New(Config{BaseURL: srv.URL + "/v1", Model: "gemma-test", HTTPClient: srv.Client()})
 	require.NoError(t, err)
 	h, err := c.Health(context.Background())
 	require.NoError(t, err)
 	assert.True(t, h.Healthy)
 	assert.Equal(t, llm.ProviderGemma, h.Provider)
+}
+
+func TestClient_HealthModelMissing(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"data":[{"id":"other-model"}]}`))
+	}))
+	defer srv.Close()
+
+	c, err := New(Config{BaseURL: srv.URL + "/v1", Model: "gemma-test", HTTPClient: srv.Client()})
+	require.NoError(t, err)
+	h, err := c.Health(context.Background())
+	require.NoError(t, err)
+	assert.False(t, h.Healthy)
+	assert.Contains(t, h.Message, "gemma-test")
+}
+
+func TestClient_GenerateOmitsZeroMaxTokens(t *testing.T) {
+	var gotBody chatRequest
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&gotBody))
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"choices": []map[string]any{{"message": map[string]string{"content": "ok"}}},
+		})
+	}))
+	defer srv.Close()
+
+	c, err := New(Config{BaseURL: srv.URL + "/v1", Model: "gemma-test", HTTPClient: srv.Client()})
+	require.NoError(t, err)
+	_, err = c.Generate(context.Background(), llm.GenerateRequest{UserPrompt: "hello"})
+	require.NoError(t, err)
+	assert.Equal(t, 0, gotBody.MaxTokens)
+	raw, err := json.Marshal(gotBody)
+	require.NoError(t, err)
+	assert.NotContains(t, string(raw), "max_tokens")
 }
 
 func TestClient_HealthAuthFailed(t *testing.T) {

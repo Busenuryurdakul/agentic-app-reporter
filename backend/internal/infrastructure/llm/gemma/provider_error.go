@@ -5,8 +5,10 @@ import (
 	"log/slog"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 
+	"github.com/masterfabric-go/masterfabric/internal/shared/config"
 	domainErr "github.com/masterfabric-go/masterfabric/internal/shared/errors"
 )
 
@@ -51,17 +53,24 @@ func sanitizeResponseBody(raw []byte) string {
 	return s
 }
 
-func (c *Client) logAndWrapChatCompletionError(status int, raw []byte, duration time.Duration) error {
+func (c *Client) logAndWrapChatCompletionError(endpointPath string, status int, raw []byte, duration time.Duration) error {
 	summary := sanitizeResponseBody(raw)
 	providerCode, kind, message := classifyProviderHTTPStatus(status, c.providerName)
+	if bodyCode, bodyMsg, ok := classifyProviderErrorBody(c.providerName, raw); ok {
+		providerCode = bodyCode
+		if bodyMsg != "" {
+			message = bodyMsg
+		}
+	}
 
 	slog.Error("llm provider chat completion failed",
-		"provider", c.Name(),
+		"provider", c.providerName,
 		"http_status", status,
+		"endpoint_path", endpointPath,
 		"provider_error_code", providerCode,
 		"response_body_summary", summary,
 		"model", c.model,
-		"base_url", c.baseURL,
+		"base_url_host", config.SanitizedLLMBaseURLHost(c.baseURL),
 		"duration_ms", duration.Milliseconds(),
 	)
 
@@ -71,4 +80,18 @@ func (c *Client) logAndWrapChatCompletionError(status int, raw []byte, duration 
 		providerCode,
 		fmt.Errorf("http_status=%d body_summary=%s", status, summary),
 	)
+}
+
+func classifyProviderErrorBody(providerName string, raw []byte) (providerCode, message string, ok bool) {
+	s := strings.ToLower(sanitizeResponseBody(raw))
+	if s == "" {
+		return "", "", false
+	}
+	if strings.Contains(s, "context") &&
+		(strings.Contains(s, "length") || strings.Contains(s, "window") || strings.Contains(s, "too long") || strings.Contains(s, "exceeded")) {
+		return domainErr.ProviderCodeContextLength,
+			providerName + " provider rejected request (context length exceeded)",
+			true
+	}
+	return "", "", false
 }

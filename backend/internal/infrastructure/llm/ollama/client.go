@@ -41,11 +41,13 @@ func New(cfg Config) (*Client, error) {
 	}
 
 	inner, err := gemma.New(gemma.Config{
-		BaseURL:        base,
-		APIKey:         strings.TrimSpace(cfg.APIKey),
-		Model:          model,
-		TimeoutSeconds: cfg.TimeoutSeconds,
-		ProviderName:   llm.ProviderOllama,
+		BaseURL:            base,
+		APIKey:             strings.TrimSpace(cfg.APIKey),
+		Model:              model,
+		TimeoutSeconds:     cfg.TimeoutSeconds,
+		ProviderName:       llm.ProviderOllama,
+		UseNativeChatRoles: true,
+		IncludeStreamFalse: true,
 	})
 	if err != nil {
 		return nil, err

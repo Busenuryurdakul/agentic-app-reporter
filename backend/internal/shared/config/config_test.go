@@ -66,6 +66,7 @@ func TestValidateLLMConfig(t *testing.T) {
 		Enabled:        true,
 		Provider:       "gemma",
 		BaseURL:        "http://localhost:11434/v1",
+		Model:          "gemma-test",
 		TimeoutSeconds: 60,
 	}, true)
 	assert.NoError(t, err)
@@ -75,6 +76,7 @@ func TestValidateLLMConfig(t *testing.T) {
 		Provider:       "gemma",
 		BaseURL:        "https://llm.example/v1",
 		APIKey:         "secret",
+		Model:          "gemma-test",
 		TimeoutSeconds: 60,
 	}, true))
 
@@ -103,6 +105,7 @@ func TestValidateLLMConfig(t *testing.T) {
 	err = ValidateLLMConfig(LLMConfig{
 		Enabled:        true,
 		Provider:       "mock",
+		Model:          "mock-model",
 		TimeoutSeconds: 60,
 	}, true)
 	assert.Error(t, err)
@@ -111,6 +114,7 @@ func TestValidateLLMConfig(t *testing.T) {
 	assert.NoError(t, ValidateLLMConfig(LLMConfig{
 		Enabled:               true,
 		Provider:              "mock",
+		Model:                 "mock-model",
 		TimeoutSeconds:        60,
 		AllowMockInProduction: true,
 	}, true))
@@ -155,6 +159,35 @@ func TestValidateLLMConfig_OllamaProduction(t *testing.T) {
 		Model:          "llama3.2",
 		TimeoutSeconds: 120,
 	}, true))
+}
+
+func TestValidateLLMConfig_OllamaRejectsHuggingFaceBaseURL(t *testing.T) {
+	err := ValidateLLMConfig(LLMConfig{
+		Enabled:        true,
+		Provider:       "ollama",
+		BaseURL:        "https://router.huggingface.co/v1",
+		Model:          "llama3.2",
+		TimeoutSeconds: 120,
+	}, true)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "incompatible")
+	assert.Contains(t, err.Error(), "ollama")
+}
+
+func TestValidateLLMConfig_ProductionRequiresModel(t *testing.T) {
+	err := ValidateLLMConfig(LLMConfig{
+		Enabled:        true,
+		Provider:       "ollama",
+		BaseURL:        "https://ollama.example.com/v1",
+		TimeoutSeconds: 120,
+	}, true)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "LLM_MODEL")
+}
+
+func TestSanitizedLLMBaseURLHost(t *testing.T) {
+	assert.Equal(t, "ollama.example.com", SanitizedLLMBaseURLHost("https://ollama.example.com/v1"))
+	assert.Equal(t, "[invalid]", SanitizedLLMBaseURLHost("not-a-url"))
 }
 
 func TestConfig_IsProduction(t *testing.T) {
