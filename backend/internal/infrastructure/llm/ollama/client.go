@@ -45,6 +45,7 @@ func New(cfg Config) (*Client, error) {
 		APIKey:         strings.TrimSpace(cfg.APIKey),
 		Model:          model,
 		TimeoutSeconds: cfg.TimeoutSeconds,
+		ProviderName:   llm.ProviderOllama,
 	})
 	if err != nil {
 		return nil, err

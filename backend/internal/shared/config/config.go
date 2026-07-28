@@ -227,8 +227,15 @@ func ValidateLLMConfig(cfg LLMConfig, production bool) error {
 		// API key is recommended in production but optional at boot so Render deploys
 		// succeed before secrets are set; /api/v1/llm/health reports unhealthy until configured.
 	case "ollama":
-		// Base URL optional — defaults to http://127.0.0.1:11434/v1 in the Ollama adapter.
-		// API key is not required for local Ollama.
+		if production {
+			if strings.TrimSpace(cfg.BaseURL) == "" {
+				return fmt.Errorf("LLM_BASE_URL is required when LLM_PROVIDER=ollama in production")
+			}
+			if isForbiddenProductionLLMHost(cfg.BaseURL) {
+				return fmt.Errorf("LLM_BASE_URL must not use localhost, 127.0.0.1, or host.docker.internal in production")
+			}
+		}
+		// API key is optional (Bearer token when reverse proxy requires auth).
 	default:
 		return fmt.Errorf("unknown LLM provider %q (supported in this build: mock, gemma, ollama)", cfg.Provider)
 	}
@@ -245,6 +252,22 @@ func ValidateLLMConfig(cfg LLMConfig, production bool) error {
 	}
 
 	return nil
+}
+
+// isForbiddenProductionLLMHost reports whether baseURL points at a loopback or
+// Docker-host alias that Render/production cannot reach.
+func isForbiddenProductionLLMHost(baseURL string) bool {
+	u, err := url.Parse(strings.TrimSpace(baseURL))
+	if err != nil || u.Host == "" {
+		return false
+	}
+	host := strings.ToLower(u.Hostname())
+	switch host {
+	case "localhost", "127.0.0.1", "host.docker.internal":
+		return true
+	default:
+		return false
+	}
 }
 
 func envOrDefault(key, defaultVal string) string {

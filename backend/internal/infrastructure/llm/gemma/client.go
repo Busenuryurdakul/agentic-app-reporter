@@ -25,10 +25,11 @@ const (
 // (Ollama, vLLM, Google OpenAI-compatible proxies, etc.).
 // Business logic must depend only on llm.LLMProvider — never on this package.
 type Client struct {
-	baseURL    string
-	apiKey     string
-	model      string
-	httpClient *http.Client
+	baseURL      string
+	apiKey       string
+	model        string
+	providerName string
+	httpClient   *http.Client
 }
 
 // Config configures a Gemma HTTP client.
@@ -38,6 +39,8 @@ type Config struct {
 	Model          string
 	TimeoutSeconds int
 	HTTPClient     *http.Client
+	// ProviderName labels user-facing errors (defaults to "gemma"; Ollama passes "ollama").
+	ProviderName string
 }
 
 // New creates a Gemma provider client. BaseURL is required (e.g. http://localhost:11434/v1).
@@ -50,6 +53,10 @@ func New(cfg Config) (*Client, error) {
 	if model == "" {
 		model = defaultModel
 	}
+	providerName := strings.TrimSpace(cfg.ProviderName)
+	if providerName == "" {
+		providerName = llm.ProviderGemma
+	}
 	httpClient := cfg.HTTPClient
 	if httpClient == nil {
 		timeout := defaultHTTPTimeout
@@ -59,10 +66,11 @@ func New(cfg Config) (*Client, error) {
 		httpClient = &http.Client{Timeout: timeout}
 	}
 	return &Client{
-		baseURL:    base,
-		apiKey:     strings.TrimSpace(cfg.APIKey),
-		model:      model,
-		httpClient: httpClient,
+		baseURL:      base,
+		apiKey:       strings.TrimSpace(cfg.APIKey),
+		model:        model,
+		providerName: providerName,
+		httpClient:   httpClient,
 	}, nil
 }
 
@@ -133,7 +141,7 @@ func (c *Client) Generate(ctx context.Context, req llm.GenerateRequest) (llm.Gen
 		if ctx.Err() != nil {
 			return llm.GenerateResponse{}, ctx.Err()
 		}
-		return llm.GenerateResponse{}, domainErr.New(domainErr.ErrInternal, "gemma provider request failed", err)
+		return llm.GenerateResponse{}, domainErr.New(domainErr.ErrInternal, c.providerName+" provider request failed", err)
 	}
 	defer resp.Body.Close()
 
@@ -163,7 +171,7 @@ func (c *Client) Generate(ctx context.Context, req llm.GenerateRequest) (llm.Gen
 		)
 		return llm.GenerateResponse{}, domainErr.NewWithProvider(
 			domainErr.ErrInternal,
-			"gemma provider returned an error payload",
+			c.providerName+" provider returned an error payload",
 			domainErr.ProviderCodeUpstream,
 			fmt.Errorf("provider_error_message=%s", summary),
 		)
@@ -210,7 +218,7 @@ func (c *Client) Health(ctx context.Context) (llm.ProviderHealth, error) {
 		return llm.ProviderHealth{
 			Provider: c.Name(),
 			Healthy:  false,
-			Message:  "gemma provider unreachable",
+			Message:  c.providerName + " provider unreachable",
 		}, nil
 	}
 	defer resp.Body.Close()
@@ -223,13 +231,13 @@ func (c *Client) Health(ctx context.Context) (llm.ProviderHealth, error) {
 		return llm.ProviderHealth{
 			Provider: c.Name(),
 			Healthy:  false,
-			Message:  "gemma provider authentication failed",
+			Message:  c.providerName + " provider authentication failed",
 		}, nil
 	}
 	return llm.ProviderHealth{
 		Provider: c.Name(),
 		Healthy:  false,
-		Message:  fmt.Sprintf("gemma provider unhealthy (HTTP %d)", resp.StatusCode),
+		Message:  fmt.Sprintf("%s provider unhealthy (HTTP %d)", c.providerName, resp.StatusCode),
 	}, nil
 }
 
