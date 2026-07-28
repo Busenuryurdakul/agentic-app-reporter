@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Building2, ChevronDown, LogOut, Menu, UserRound } from "lucide-react";
+import { Building2, ChevronDown, KeyRound, LogOut, Menu, UserRound } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { AppSidebar } from "@/components/layout/app-sidebar";
@@ -110,6 +110,13 @@ export function TopBar({
               <p className="text-xs text-muted-foreground">{user?.email}</p>
             </div>
           </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link href="/account/api-keys">
+              <KeyRound className="size-4" />
+              {tr.apiKeys.title}
+            </Link>
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => logout()}>
             <LogOut className="size-4" />

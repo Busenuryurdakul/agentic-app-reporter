@@ -17,10 +17,11 @@ import (
 
 // Handler provides IAM HTTP handlers.
 type Handler struct {
-	registerUC   *usecase.RegisterUseCase
-	loginUC      *usecase.LoginUseCase
-	assignRoleUC *usecase.AssignRoleUseCase
-	userRepo     iamRepo.UserRepository
+	registerUC          *usecase.RegisterUseCase
+	loginUC             *usecase.LoginUseCase
+	assignRoleUC        *usecase.AssignRoleUseCase
+	manageUserAPIKeysUC *usecase.ManageUserAPIKeysUseCase
+	userRepo            iamRepo.UserRepository
 }
 
 // NewHandler creates a new IAM handler.
@@ -28,13 +29,15 @@ func NewHandler(
 	registerUC *usecase.RegisterUseCase,
 	loginUC *usecase.LoginUseCase,
 	assignRoleUC *usecase.AssignRoleUseCase,
+	manageUserAPIKeysUC *usecase.ManageUserAPIKeysUseCase,
 	userRepo iamRepo.UserRepository,
 ) *Handler {
 	return &Handler{
-		registerUC:   registerUC,
-		loginUC:      loginUC,
-		assignRoleUC: assignRoleUC,
-		userRepo:     userRepo,
+		registerUC:          registerUC,
+		loginUC:             loginUC,
+		assignRoleUC:        assignRoleUC,
+		manageUserAPIKeysUC: manageUserAPIKeysUC,
+		userRepo:            userRepo,
 	}
 }
 

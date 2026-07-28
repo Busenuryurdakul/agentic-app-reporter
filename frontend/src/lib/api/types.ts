@@ -70,3 +70,17 @@ export type ApiErrorBody = {
 
 /** Supported LLM providers for organization-level settings. */
 export type LLMProviderName = "mock" | "gemma" | "ollama";
+
+export type UserAPIKeyInfo = {
+  id: string;
+  user_id: string;
+  name: string;
+  expires_at?: string | null;
+  is_active: boolean;
+  last_used_at?: string | null;
+  created_at: string;
+};
+
+export type CreateUserAPIKeyRequest = {
+  name: string;
+};
