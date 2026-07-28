@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLoad_Defaults(t *testing.T) {
@@ -112,6 +113,47 @@ func TestValidateLLMConfig(t *testing.T) {
 		Provider:              "mock",
 		TimeoutSeconds:        60,
 		AllowMockInProduction: true,
+	}, true))
+}
+
+func TestValidateLLMConfig_OllamaProduction(t *testing.T) {
+	base := LLMConfig{
+		Enabled:        true,
+		Provider:       "ollama",
+		Model:          "llama3.2",
+		TimeoutSeconds: 120,
+	}
+
+	err := ValidateLLMConfig(base, true)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "LLM_BASE_URL")
+
+	for _, forbidden := range []string{
+		"http://localhost:11434/v1",
+		"http://127.0.0.1:11434/v1",
+		"http://host.docker.internal:11434/v1",
+	} {
+		cfg := base
+		cfg.BaseURL = forbidden
+		err = ValidateLLMConfig(cfg, true)
+		require.Error(t, err, "url=%s", forbidden)
+		assert.Contains(t, err.Error(), "localhost")
+	}
+
+	assert.NoError(t, ValidateLLMConfig(LLMConfig{
+		Enabled:        true,
+		Provider:       "ollama",
+		BaseURL:        "http://127.0.0.1:11434/v1",
+		Model:          "llama3.2",
+		TimeoutSeconds: 120,
+	}, false))
+
+	assert.NoError(t, ValidateLLMConfig(LLMConfig{
+		Enabled:        true,
+		Provider:       "ollama",
+		BaseURL:        "https://ollama.example.com/v1",
+		Model:          "llama3.2",
+		TimeoutSeconds: 120,
 	}, true))
 }
 

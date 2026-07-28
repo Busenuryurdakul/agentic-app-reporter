@@ -421,10 +421,12 @@ export const tr = {
     provider: "Sağlayıcı",
     providerMock: "Mock (geliştirme)",
     providerGemma: "Gemma / HuggingFace",
-    providerOllama: "Ollama (yerel)",
+    providerOllama: "Ollama",
     model: "Model",
     baseUrl: "Base URL",
     baseUrlHint: "OpenAI uyumlu uç nokta (Gemma veya Ollama).",
+    ollamaProductionWarning:
+      "Production ortamında localhost ve 127.0.0.1 çalışmaz; harici HTTPS URL kullanın.",
     timeoutSeconds: "Zaman aşımı (sn)",
     maxRetries: "Maks. yeniden deneme",
     enabled: "LLM etkin",

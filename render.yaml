@@ -4,9 +4,9 @@
 # Deploy: Render Dashboard → New → Blueprint → connect this repo.
 # After deploy, set CORS_ALLOWED_ORIGINS to your frontend URL(s).
 #
-# LLM: Render has no GPU. Set LLM_BASE_URL / LLM_MODEL / LLM_API_KEY to your
-# external MLC or Hugging Face endpoint. See backend/deployments/render-external-llm.md
-# Blueprint sync trigger: 2026-07-25T18:50
+# LLM: Render has no GPU. Point LLM_BASE_URL at your VPS Ollama endpoint (HTTPS).
+# See backend/deployments/render-ollama-production.md
+# Blueprint sync trigger: 2026-07-28T01:10
 
 services:
   - type: web
@@ -29,18 +29,19 @@ services:
       - key: LLM_ENABLED
         value: "true"
       - key: LLM_PROVIDER
-        value: gemma
+        value: ollama
       - key: LLM_ALLOW_MOCK_IN_PRODUCTION
         value: "false"
       - key: LLM_TIMEOUT_SECONDS
         value: "120"
       - key: LLM_MAX_RETRIES
         value: "2"
+      # Set manually in Render dashboard after VPS Ollama is provisioned (secret URL; not synced):
       - key: LLM_BASE_URL
-        value: https://router.huggingface.co/v1
+        sync: false
       - key: LLM_MODEL
-        value: google/gemma-2-2b-it:featherless-ai
-      # Set manually in Render dashboard (secret; not synced from repo on blueprint update):
+        value: llama3.2
+      # Optional: Bearer token when reverse proxy requires auth
       - key: LLM_API_KEY
         sync: false
       - key: LOG_LEVEL

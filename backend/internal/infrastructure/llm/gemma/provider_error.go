@@ -15,32 +15,32 @@ var (
 	bearerTokenPattern = regexp.MustCompile(`(?i)bearer\s+[A-Za-z0-9._\-]+`)
 )
 
-func classifyProviderHTTPStatus(status int) (providerCode string, kind error, message string) {
+func classifyProviderHTTPStatus(status int, providerName string) (providerCode string, kind error, message string) {
 	switch {
 	case status == http.StatusBadRequest:
 		return domainErr.ProviderCodeInvalidRequest, domainErr.ErrBadRequest,
-			"gemma provider rejected request (invalid request or context length)"
+			providerName + " provider rejected request (invalid request or context length)"
 	case status == http.StatusUnauthorized || status == http.StatusForbidden:
 		return domainErr.ProviderCodeAuth, domainErr.ErrBadGateway,
-			"gemma provider authentication or model access failed"
+			providerName + " provider authentication or model access failed"
 	case status == http.StatusNotFound:
 		return domainErr.ProviderCodeNotFound, domainErr.ErrBadGateway,
-			"gemma provider model or route not found"
+			providerName + " provider model or route not found"
 	case status == http.StatusTooManyRequests:
 		return domainErr.ProviderCodeRateLimited, domainErr.ErrRateLimited,
-			"gemma provider rate limited"
+			providerName + " provider rate limited"
 	case status == http.StatusPaymentRequired:
 		return domainErr.ProviderCodeQuota, domainErr.ErrBadGateway,
-			"gemma provider quota or billing limit reached"
+			providerName + " provider quota or billing limit reached"
 	case status >= 500:
 		return domainErr.ProviderCodeUpstream, domainErr.ErrInternal,
-			fmt.Sprintf("gemma provider unavailable (HTTP %d)", status)
+			fmt.Sprintf("%s provider unavailable (HTTP %d)", providerName, status)
 	case status >= 400:
 		return domainErr.ProviderCodeInvalidRequest, domainErr.ErrBadRequest,
-			fmt.Sprintf("gemma provider rejected request (HTTP %d)", status)
+			fmt.Sprintf("%s provider rejected request (HTTP %d)", providerName, status)
 	default:
 		return domainErr.ProviderCodeUpstream, domainErr.ErrInternal,
-			fmt.Sprintf("gemma provider unexpected status (HTTP %d)", status)
+			fmt.Sprintf("%s provider unexpected status (HTTP %d)", providerName, status)
 	}
 }
 
@@ -53,7 +53,7 @@ func sanitizeResponseBody(raw []byte) string {
 
 func (c *Client) logAndWrapChatCompletionError(status int, raw []byte, duration time.Duration) error {
 	summary := sanitizeResponseBody(raw)
-	providerCode, kind, message := classifyProviderHTTPStatus(status)
+	providerCode, kind, message := classifyProviderHTTPStatus(status, c.providerName)
 
 	slog.Error("llm provider chat completion failed",
 		"provider", c.Name(),

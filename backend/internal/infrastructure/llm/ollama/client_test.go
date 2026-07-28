@@ -61,3 +61,18 @@ func TestClient_GenerateAndHealth(t *testing.T) {
 	assert.Equal(t, llm.ProviderOllama, h.Provider)
 	assert.True(t, h.Healthy)
 }
+
+func TestClient_HealthUnreachable_NoGemmaInMessage(t *testing.T) {
+	c, err := New(Config{
+		BaseURL:        "http://127.0.0.1:1/v1",
+		TimeoutSeconds: 1,
+	})
+	require.NoError(t, err)
+
+	h, err := c.Health(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, llm.ProviderOllama, h.Provider)
+	assert.False(t, h.Healthy)
+	assert.NotContains(t, h.Message, "gemma")
+	assert.Contains(t, h.Message, "ollama provider unreachable")
+}

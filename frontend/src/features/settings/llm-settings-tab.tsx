@@ -234,7 +234,11 @@ export function LlmSettingsTab({ orgId, canWrite }: LlmSettingsTabProps) {
                 id="model"
                 disabled={!canWrite}
                 {...form.register("model")}
-                placeholder={settings.model || "mock-model"}
+                placeholder={
+                  provider === "ollama"
+                    ? settings.model || "llama3.2"
+                    : settings.model || "mock-model"
+                }
               />
             </div>
           </div>
@@ -248,11 +252,14 @@ export function LlmSettingsTab({ orgId, canWrite }: LlmSettingsTabProps) {
                 {...form.register("base_url")}
                 placeholder={
                   provider === "ollama"
-                    ? "http://127.0.0.1:11434/v1"
+                    ? "https://ollama.example.com/v1"
                     : "https://example.com/v1"
                 }
               />
               <p className="text-xs text-muted-foreground">{tr.llmSettings.baseUrlHint}</p>
+              {provider === "ollama" ? (
+                <p className="text-xs text-amber-700">{tr.llmSettings.ollamaProductionWarning}</p>
+              ) : null}
             </div>
           ) : null}
 

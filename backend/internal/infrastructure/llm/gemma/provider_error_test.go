@@ -25,7 +25,7 @@ func TestClassifyProviderHTTPStatus(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		code, kind, _ := classifyProviderHTTPStatus(tt.status)
+		code, kind, _ := classifyProviderHTTPStatus(tt.status, "gemma")
 		assert.Equal(t, tt.code, code, "status=%d", tt.status)
 		assert.ErrorIs(t, kind, tt.kind, "status=%d", tt.status)
 	}
