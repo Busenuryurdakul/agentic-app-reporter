@@ -272,8 +272,17 @@ func buildDependencies(
 	}
 
 	// LLM provider is independent of the database (mock / gemma via LLMProvider).
-	if err := config.ValidateLLMConfig(cfg.LLM, cfg.IsProduction()); err != nil {
+	if err := config.ValidateLLMConfigForStartup(cfg.LLM, cfg.IsProduction()); err != nil {
 		return deps, nil, fmt.Errorf("llm config: %w", err)
+	}
+	if cfg.LLM.Enabled {
+		if compatErr := config.ProviderBaseURLCompatibilityError(cfg.LLM); compatErr != nil {
+			log.Warn("llm provider/base URL mismatch; health and generate will fail until LLM_BASE_URL is updated",
+				"provider", cfg.LLM.Provider,
+				"base_url_host", config.SanitizedLLMBaseURLHost(cfg.LLM.BaseURL),
+				"error", compatErr,
+			)
+		}
 	}
 	if cfg.IsProduction() && cfg.LLM.Enabled && strings.EqualFold(cfg.LLM.Provider, "gemma") && strings.TrimSpace(cfg.LLM.APIKey) == "" {
 		log.Warn("LLM_API_KEY is unset; gemma generate will fail until set in Render dashboard")
