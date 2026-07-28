@@ -1,0 +1,13 @@
+# Example Caddyfile — copy to /etc/caddy/Caddyfile on your VPS.
+# Replace ollama.example.com and YOUR_SHARED_SECRET before use.
+# Never commit real domain or token to git.
+
+ollama.example.com {
+    @authorized {
+        header Authorization "Bearer YOUR_SHARED_SECRET"
+    }
+    handle @authorized {
+        reverse_proxy 127.0.0.1:11434
+    }
+    respond "Unauthorized" 401
+}

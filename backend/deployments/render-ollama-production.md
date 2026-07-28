@@ -4,6 +4,20 @@ Render free tier has **no GPU** and cannot reach `localhost`, `127.0.0.1`, or
 `host.docker.internal`. Run Ollama on a VPS with a public HTTPS endpoint and point
 the Render-deployed Go API at that URL via environment variables.
 
+**Start here if the VPS is not provisioned yet:** [`ollama-vps/README.md`](ollama-vps/README.md)
+
+## Current status (2026-07-28)
+
+| Item | Status |
+|------|--------|
+| Ollama VPS | **Not provisioned** — no production URL in repo (by design) |
+| Render `LLM_PROVIDER` | `ollama` |
+| Render `LLM_BASE_URL` | Still `router.huggingface.co` until VPS is live and sync script runs |
+| Generate | Fails until `LLM_BASE_URL` points at real Ollama `/v1` |
+
+Do **not** guess or fabricate URLs. Complete VPS setup, run `verify_ollama_endpoint.mjs`,
+then `sync_render_llm_ollama.mjs` from local `backend/.env` only.
+
 ## Architecture
 
 ```
@@ -193,21 +207,13 @@ curl -s -X POST "${API_BASE}/organizations/${ORG_ID}/apps/${APP_ID}/product-spec
 Confirm response metadata shows `provider_name=ollama`, `model_name=llama3.2`, and no
 Hugging Face `provider_quota` errors.
 
-## Production verification (2026-07-28) — GO
+## Production verification
 
-Verified on `agentic-app-reporter-api.onrender.com` after VPS Ollama URL and Render
-env vars were configured (values live in Render dashboard only; not in repo).
+Run after VPS is live, Render `LLM_BASE_URL` is updated, and redeploy completes.
+Use `backend/scripts/diagnose_production_generate.mjs` and JWT `/api/v1/llm/health`.
 
-| Check | Result |
-|-------|--------|
-| `GET /health/live` | 200 |
-| `GET /health/ready` | 200 |
-| Settings → Test Connection | succeeded |
-| `product_spec` generate | succeeded |
-| regenerate | succeeded |
-| `provider_name` | `ollama` |
-| `model_name` | `llama3.2` |
-| `provider_quota` | no longer returned (HF quota path removed) |
+Previous doc claimed GO before VPS URL was confirmed on Render — treat any old
+checklist as stale until the steps in [`ollama-vps/README.md`](ollama-vps/README.md) pass.
 
 ## Operations — org-level Gemma/HF override cleanup
 
