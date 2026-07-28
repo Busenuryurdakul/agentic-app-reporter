@@ -23,6 +23,7 @@ import (
 	generationHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/generation"
 	iamHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/iam"
 	llmsettingsHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/llmsettings"
+	mcpHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/mcp"
 	observeHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/observe"
 	projectprofileHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/projectprofile"
 	questionnaireHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/questionnaire"
@@ -325,6 +326,7 @@ func buildDependencies(
 	answerRepo := pgQuestionnaire.NewAnswerRepository(db)
 	documentRepo := pgDocument.NewDocumentRepository(db)
 	orgLLMSettingsRepo := pgLLM.NewOrgLLMSettingsRepository(db)
+	userAPIKeyRepo := pgIam.NewUserAPIKeyRepo(db)
 
 	llmEncKey := strings.TrimSpace(cfg.LLM.EncryptionKey)
 	if llmEncKey == "" {
@@ -347,12 +349,16 @@ func buildDependencies(
 	deps.AuthService = jwtService
 	deps.RBACService = rbacService
 	deps.OrgRepo = orgRepo
+	deps.OrgUserRepo = orgUserRepo
 	deps.WorkspaceRepo = workspaceRepo
 
 	// --- Use cases (with event bus for domain event publishing) ---
 	registerUC := iamUC.NewRegisterUseCase(userRepo, jwtService, eventBus)
 	loginUC := iamUC.NewLoginUseCase(userRepo, jwtService)
 	assignRoleUC := iamUC.NewAssignRoleUseCase(roleRepo, rbacService, eventBus)
+	validateUserAPIKeyUC := iamUC.NewValidateUserAPIKeyUseCase(userAPIKeyRepo, userRepo)
+	manageUserAPIKeysUC := iamUC.NewManageUserAPIKeysUseCase(userAPIKeyRepo)
+	deps.UserAPIKeyValidator = validateUserAPIKeyUC
 	createOrgUC := tenantUC.NewCreateOrgUseCase(orgRepo, orgUserRepo, roleRepo, eventBus)
 	listOrgsUC := tenantUC.NewListOrgsUseCase(orgRepo, orgUserRepo)
 	createWorkspaceUC := tenantUC.NewCreateWorkspaceUseCase(workspaceRepo, orgRepo, eventBus)
@@ -421,7 +427,14 @@ func buildDependencies(
 	})
 
 	// --- Handlers ---
-	deps.IAMHandler = iamHandler.NewHandler(registerUC, loginUC, assignRoleUC, userRepo)
+	deps.IAMHandler = iamHandler.NewHandler(registerUC, loginUC, assignRoleUC, manageUserAPIKeysUC, userRepo)
+	deps.MCPHandler = mcpHandler.NewHandler(
+		userRepo,
+		providerHealthUC,
+		listDocumentsUC,
+		getDocumentUC,
+		readinessUC,
+	)
 	deps.TenantHandler = tenantHandler.NewHandler(
 		createOrgUC,
 		listOrgsUC,

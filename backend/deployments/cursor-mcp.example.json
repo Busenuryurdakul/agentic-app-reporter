@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "adcs": {
+      "command": "node",
+      "args": ["backend/scripts/adcs_mcp_bridge.mjs"],
+      "env": {
+        "ADCS_API_BASE": "http://127.0.0.1:8080/api/v1",
+        "ADCS_API_KEY": "${env:ADCS_API_KEY}",
+        "ADCS_ORG_ID": "${env:ADCS_ORG_ID}",
+        "ADCS_WORKSPACE_ID": "${env:ADCS_WORKSPACE_ID}"
+      }
+    }
+  }
+}

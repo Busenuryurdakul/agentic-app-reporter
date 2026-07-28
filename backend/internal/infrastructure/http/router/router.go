@@ -24,8 +24,10 @@ import (
 	questionnaireHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/questionnaire"
 	realtimeHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/realtime"
 	tenantHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/tenant"
+	mcpHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/mcp"
 
 	// Services & middleware
+	iamRepo "github.com/masterfabric-go/masterfabric/internal/domain/iam/repository"
 	iamService "github.com/masterfabric-go/masterfabric/internal/domain/iam/service"
 	domainllm "github.com/masterfabric-go/masterfabric/internal/domain/llm"
 	"github.com/masterfabric-go/masterfabric/internal/gateway"
@@ -53,12 +55,14 @@ type Dependencies struct {
 	Draining           func() bool
 
 	// Services
-	AuthService iamService.AuthService
-	RBACService iamService.RBACService
-	LLMProvider domainllm.LLMProvider
+	AuthService         iamService.AuthService
+	UserAPIKeyValidator iamService.UserAPIKeyValidator
+	RBACService         iamService.RBACService
+	LLMProvider         domainllm.LLMProvider
 
 	// Handlers
 	IAMHandler            *iamHandler.Handler
+	MCPHandler            *mcpHandler.Handler
 	TenantHandler         *tenantHandler.Handler
 	APIMgmtHandler        *apimgmtHandler.Handler
 	AuditHandler          *auditHandler.Handler
@@ -75,6 +79,7 @@ type Dependencies struct {
 
 	// Repos needed for middleware
 	OrgRepo       tenantRepo.OrgRepository
+	OrgUserRepo   iamRepo.OrgUserRepository
 	WorkspaceRepo tenantRepo.WorkspaceRepository
 }
 
@@ -113,6 +118,22 @@ func New(deps Dependencies) *chi.Mux {
 			}
 		})
 
+		// MCP HTTP API — JWT or user API key (adcs_ prefix).
+		if deps.MCPHandler != nil && deps.AuthService != nil && deps.UserAPIKeyValidator != nil {
+			r.Route("/mcp", func(r chi.Router) {
+				r.Use(middleware.JWTOrAPIKeyAuth(deps.AuthService, deps.UserAPIKeyValidator))
+				if deps.OrgRepo != nil {
+					r.Use(middleware.TenantResolverWithWorkspace(deps.OrgRepo, deps.WorkspaceRepo))
+				}
+				if deps.OrgUserRepo != nil {
+					r.Use(middleware.RequireOrgMembership(deps.OrgUserRepo))
+				}
+				r.Get("/health", deps.MCPHandler.Health)
+				r.Get("/tools", deps.MCPHandler.ListTools)
+				r.Post("/tools/call", deps.MCPHandler.CallTool)
+			})
+		}
+
 		// Protected routes (require JWT)
 		r.Group(func(r chi.Router) {
 			if deps.AuthService != nil {
@@ -139,6 +160,11 @@ func New(deps Dependencies) *chi.Mux {
 			// User routes
 			if deps.IAMHandler != nil {
 				r.Get("/me", deps.IAMHandler.GetMe)
+				r.Route("/auth/api-keys", func(r chi.Router) {
+					r.Post("/", deps.IAMHandler.CreateUserAPIKey)
+					r.Get("/", deps.IAMHandler.ListUserAPIKeys)
+					r.Delete("/{keyId}", deps.IAMHandler.RevokeUserAPIKey)
+				})
 				r.With(maybeRequirePermission(deps.RBACService, "user:read")).Route("/users", func(r chi.Router) {
 					r.Get("/", deps.IAMHandler.ListUsers)
 					r.Get("/{id}", deps.IAMHandler.GetUser)

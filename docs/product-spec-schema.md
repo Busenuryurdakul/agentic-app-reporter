@@ -125,7 +125,7 @@ Regenerate, kaynak belgenin `document_type` değerini korur.
 
 ### 6. MCP ve otomasyon entegrasyonları
 - Anket anahtarları: `uses_mcp`, `mcp_servers_list`, `automation_workflows`
-- Backend MCP vs WebMCP ayrımı (gelecek faz)
+- Backend MCP vs WebMCP ayrımı (gelecek faz) — runtime Backend MCP: [`docs/mcp-backend-integration.md`](../../docs/mcp-backend-integration.md)
 - Hangi iş akışlarının agent/tool ile destekleneceği
 
 ### 7. Güvenlik ve uyumluluk
