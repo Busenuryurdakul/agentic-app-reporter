@@ -208,6 +208,23 @@ func Load() *Config {
 // ValidateLLMConfig validates LLM settings for the current environment.
 // Unknown providers and accidental mock-in-production are hard errors (no silent fallback).
 func ValidateLLMConfig(cfg LLMConfig, production bool) error {
+	return validateLLMConfig(cfg, production, true)
+}
+
+// ValidateLLMConfigForStartup validates LLM settings at process boot.
+// Provider/base URL compatibility is deferred to health, generate, and org settings
+// so a transitional misconfiguration (e.g. ollama provider before VPS URL sync) does not block deploy.
+func ValidateLLMConfigForStartup(cfg LLMConfig, production bool) error {
+	return validateLLMConfig(cfg, production, false)
+}
+
+// ProviderBaseURLCompatibilityError reports whether provider and base URL host are mismatched.
+func ProviderBaseURLCompatibilityError(cfg LLMConfig) error {
+	name := strings.ToLower(strings.TrimSpace(cfg.Provider))
+	return validateProviderBaseURLCompatibility(name, cfg.BaseURL)
+}
+
+func validateLLMConfig(cfg LLMConfig, production bool, checkURLCompatibility bool) error {
 	if !cfg.Enabled {
 		return nil
 	}
@@ -251,8 +268,10 @@ func ValidateLLMConfig(cfg LLMConfig, production bool) error {
 		return fmt.Errorf("LLM_MODEL is required when LLM_ENABLED=true in production")
 	}
 
-	if err := validateProviderBaseURLCompatibility(name, cfg.BaseURL); err != nil {
-		return err
+	if checkURLCompatibility {
+		if err := validateProviderBaseURLCompatibility(name, cfg.BaseURL); err != nil {
+			return err
+		}
 	}
 
 	if production && name == "mock" && !cfg.AllowMockInProduction {

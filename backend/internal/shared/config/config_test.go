@@ -162,16 +162,22 @@ func TestValidateLLMConfig_OllamaProduction(t *testing.T) {
 }
 
 func TestValidateLLMConfig_OllamaRejectsHuggingFaceBaseURL(t *testing.T) {
-	err := ValidateLLMConfig(LLMConfig{
+	cfg := LLMConfig{
 		Enabled:        true,
 		Provider:       "ollama",
 		BaseURL:        "https://router.huggingface.co/v1",
 		Model:          "llama3.2",
 		TimeoutSeconds: 120,
-	}, true)
+	}
+	err := ValidateLLMConfig(cfg, true)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "incompatible")
 	assert.Contains(t, err.Error(), "ollama")
+
+	assert.NoError(t, ValidateLLMConfigForStartup(cfg, true))
+	compatErr := ProviderBaseURLCompatibilityError(cfg)
+	require.Error(t, compatErr)
+	assert.Contains(t, compatErr.Error(), "incompatible")
 }
 
 func TestValidateLLMConfig_ProductionRequiresModel(t *testing.T) {
