@@ -83,14 +83,9 @@ async function loadTools() {
   cachedTools = (data.tools || []).map((tool) => ({
     name: tool.name,
     description: tool.description,
-    inputSchema: {
+    inputSchema: tool.inputSchema || {
       type: "object",
-      properties: {
-        organization_id: { type: "string", description: "Organization UUID (or set ADCS_ORG_ID)" },
-        workspace_id: { type: "string", description: "Workspace UUID (or set ADCS_WORKSPACE_ID)" },
-        document_id: { type: "string", description: "Document UUID (get_document only)" },
-        limit: { type: "integer", description: "Max documents (list_documents only)" },
-      },
+      properties: {},
       additionalProperties: false,
     },
   }));

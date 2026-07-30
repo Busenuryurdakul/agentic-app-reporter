@@ -50,7 +50,8 @@ func (uc *ValidateUserAPIKeyUseCase) ValidateUserAPIKey(ctx context.Context, raw
 	}()
 
 	return &service.TokenClaims{
-		UserID: key.UserID,
-		Email:  user.Email,
+		UserID:      key.UserID,
+		Email:       user.Email,
+		Permissions: decodeUserAPIKeyScopes(key.Scopes),
 	}, nil
 }

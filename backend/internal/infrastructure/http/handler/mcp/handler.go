@@ -39,8 +39,9 @@ func NewHandler(
 }
 
 type toolDefinition struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	InputSchema map[string]any `json:"inputSchema,omitempty"`
 }
 
 type callToolRequest struct {
@@ -50,23 +51,7 @@ type callToolRequest struct {
 
 // ListTools handles GET /api/v1/mcp/tools.
 func (h *Handler) ListTools(w http.ResponseWriter, r *http.Request) {
-	tools := []toolDefinition{
-		{Name: "get_me", Description: "Returns the authenticated user's profile."},
-		{Name: "llm_health", Description: "Returns LLM provider health status."},
-		{
-			Name:        "list_documents",
-			Description: "Lists generated documents for a workspace. Requires X-Organization-ID and workspace_id (argument or X-Workspace-ID).",
-		},
-		{
-			Name:        "get_document",
-			Description: "Returns a generated document including markdown body. Requires X-Organization-ID, workspace_id, and document_id.",
-		},
-		{
-			Name:        "workspace_readiness",
-			Description: "Returns workspace readiness score and missing information summary. Requires X-Organization-ID and workspace_id.",
-		},
-	}
-	response.JSON(w, http.StatusOK, map[string]any{"tools": tools})
+	response.JSON(w, http.StatusOK, map[string]any{"tools": toolCatalog()})
 }
 
 // CallTool handles POST /api/v1/mcp/tools/call.
@@ -78,6 +63,10 @@ func (h *Handler) CallTool(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Name == "" {
 		response.JSON(w, http.StatusBadRequest, map[string]string{"error": "tool name is required"})
+		return
+	}
+
+	if !enforceMCPToolScope(w, r, req.Name) {
 		return
 	}
 

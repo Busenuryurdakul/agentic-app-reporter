@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/masterfabric-go/masterfabric/internal/application/iam/dto"
@@ -28,11 +29,35 @@ func (uc *ManageUserAPIKeysUseCase) CreateKey(ctx context.Context, userID uuid.U
 		return nil, fmt.Errorf("generate user api key: %w", err)
 	}
 
+	scopes, err := NormalizeUserAPIKeyScopes(req.Scopes)
+	if err != nil {
+		return nil, err
+	}
+	scopeBytes, err := encodeUserAPIKeyScopes(scopes)
+	if err != nil {
+		return nil, err
+	}
+
+	var expiresAt *time.Time
+	if req.ExpiresAt != nil && *req.ExpiresAt != "" {
+		parsed, parseErr := time.Parse(time.RFC3339, *req.ExpiresAt)
+		if parseErr != nil {
+			return nil, domainErr.New(domainErr.ErrBadRequest, "expires_at must be RFC3339", parseErr)
+		}
+		parsed = parsed.UTC()
+		if !parsed.After(time.Now().UTC()) {
+			return nil, domainErr.New(domainErr.ErrBadRequest, "expires_at must be in the future", nil)
+		}
+		expiresAt = &parsed
+	}
+
 	key := &model.UserAPIKey{
-		UserID:   userID,
-		KeyHash:  hashUserAPIKey(rawKey),
-		Name:     req.Name,
-		IsActive: true,
+		UserID:    userID,
+		KeyHash:   hashUserAPIKey(rawKey),
+		Name:      req.Name,
+		Scopes:    scopeBytes,
+		ExpiresAt: expiresAt,
+		IsActive:  true,
 	}
 
 	if err := uc.keyRepo.Create(ctx, key); err != nil {
@@ -43,6 +68,7 @@ func (uc *ManageUserAPIKeysUseCase) CreateKey(ctx context.Context, userID uuid.U
 		ID:        key.ID,
 		UserID:    key.UserID,
 		Name:      key.Name,
+		Scopes:    scopes,
 		Key:       rawKey,
 		ExpiresAt: key.ExpiresAt,
 		IsActive:  key.IsActive,
@@ -75,6 +101,7 @@ func (uc *ManageUserAPIKeysUseCase) ListKeys(ctx context.Context, userID uuid.UU
 			ID:         k.ID,
 			UserID:     k.UserID,
 			Name:       k.Name,
+			Scopes:     decodeUserAPIKeyScopes(k.Scopes),
 			ExpiresAt:  k.ExpiresAt,
 			IsActive:   k.IsActive,
 			LastUsedAt: k.LastUsedAt,

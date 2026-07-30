@@ -93,6 +93,12 @@ func RequirePermission(rbac service.RBACService, permission string) func(http.Ha
 	}
 }
 
+// PermissionsFromContext returns API key scopes or JWT permissions when present.
+func PermissionsFromContext(ctx context.Context) ([]string, bool) {
+	perms, ok := ctx.Value(ContextKeyPermissions).([]string)
+	return perms, ok
+}
+
 // UserIDFromContext extracts the authenticated user ID from the context.
 func UserIDFromContext(ctx context.Context) (uuid.UUID, bool) {
 	id, ok := ctx.Value(ContextKeyUserID).(uuid.UUID)

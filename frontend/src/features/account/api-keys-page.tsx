@@ -163,6 +163,12 @@ export function ApiKeysPage() {
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {key.is_active ? tr.apiKeys.active : tr.apiKeys.inactive}
+                          {key.scopes?.length ? (
+                            <>
+                              {" · "}
+                              {tr.apiKeys.scopes}: {key.scopes.join(", ")}
+                            </>
+                          ) : null}
                         </p>
                       </div>
                       <Button

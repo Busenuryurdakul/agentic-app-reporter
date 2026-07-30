@@ -2,7 +2,7 @@
 
 **Product:** AI Development Configuration Studio  
 **Scope:** HTTP MCP tools + user-scoped API keys (`adcs_` prefix)  
-**Out of scope:** WebMCP (browser agent runtime) — future phase
+**Out of scope:** WebMCP (browser agent runtime) — see [`mcp-webmcp-integration.md`](./mcp-webmcp-integration.md)
 
 ---
 
@@ -102,6 +102,39 @@ export ADCS_WORKSPACE_ID="<workspace-uuid>"
 cd backend
 node ./scripts/smoke_api_keys_mcp.mjs
 ```
+
+CI: `.github/workflows/backend-mcp-smoke.yml` (Postgres service + smoke on push/PR).
+
+Production verify:
+
+```bash
+cd backend
+node ./scripts/verify_render_mcp.mjs
+# optional full prod smoke:
+# MCP_SMOKE_EMAIL=... MCP_SMOKE_PASSWORD=... node ./scripts/verify_render_mcp.mjs
+```
+
+---
+
+## API key scopes
+
+Default scope on create: `mcp:read` (all MCP read tools).
+
+| Scope | Tools |
+|-------|-------|
+| `mcp:read` | All read tools (umbrella) |
+| `mcp:profile` | `get_me` |
+| `mcp:llm` | `llm_health` |
+| `mcp:workspace` | `list_documents`, `get_document`, `workspace_readiness` |
+
+Create with custom scopes:
+
+```json
+POST /api/v1/auth/api-keys
+{ "name": "cursor-readonly", "scopes": ["mcp:profile", "mcp:workspace"] }
+```
+
+Optional `expires_at` (RFC3339 UTC). Legacy keys with empty scopes retain full MCP access.
 
 ---
 
