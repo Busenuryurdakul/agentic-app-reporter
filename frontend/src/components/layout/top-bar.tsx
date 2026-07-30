@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Building2, ChevronDown, KeyRound, LogOut, Menu, UserRound } from "lucide-react";
+import { Bot, Building2, ChevronDown, KeyRound, LogOut, Menu, UserRound } from "lucide-react";
 import { useState } from "react";
+import { useAgentPanelOptional } from "@/features/agent/agent-panel-provider";
 import { useAuth } from "@/components/providers/auth-provider";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ export function TopBar({
 }: TopBarProps) {
   const { user, organization, logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const agentPanel = useAgentPanelOptional();
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-background/90 px-4 backdrop-blur md:px-6">
@@ -68,6 +70,19 @@ export function TopBar({
           {title ?? workspaceName ?? organization?.name ?? tr.common.dashboard}
         </p>
       </div>
+
+      {workspaceId && agentPanel ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={() => agentPanel.setOpen(true)}
+        >
+          <Bot className="size-3.5" />
+          <span className="hidden sm:inline">{tr.agent.openPanel}</span>
+        </Button>
+      ) : null}
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
