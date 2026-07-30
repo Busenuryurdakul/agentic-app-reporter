@@ -84,6 +84,7 @@ func TestManageUserAPIKeys_CreateListRevoke(t *testing.T) {
 	require.NotEmpty(t, created.Key)
 	assert.True(t, usecase.IsUserAPIKey(created.Key))
 	assert.Equal(t, "cursor", created.Name)
+	assert.Equal(t, []string{"mcp:read"}, created.Scopes)
 
 	listed, err := uc.ListKeys(context.Background(), userID)
 	require.NoError(t, err)
