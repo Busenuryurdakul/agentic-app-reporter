@@ -81,6 +81,23 @@ Details: `backend/deployments/LLM_HYBRID.md`, `STAGE3_MLC_PLAN.md`
 - LLM via `LLMProvider` abstraction (Phase 3 Done) — mock/Gemma adapters; not coupled to Cursor
 - Docs: `docs/architecture-decisions.md`, plan: `PHASE3_PLAN.md`
 
+## MCP / WebMCP
+
+**Backend MCP is live** — user API keys (`adcs_…`), HTTP tool API, Cursor stdio bridge.
+
+| Doc | Content |
+|-----|---------|
+| [`docs/mcp-webmcp-integration.md`](docs/mcp-webmcp-integration.md) | Integration definition (layers, phases, WebMCP plan) |
+| [`docs/mcp-backend-integration.md`](docs/mcp-backend-integration.md) | HTTP endpoints, auth, Cursor setup |
+| [`backend/deployments/cursor-mcp.example.json`](backend/deployments/cursor-mcp.example.json) | Example Cursor config |
+
+Quick setup:
+
+1. Create API key at http://localhost:3000/account/api-keys
+2. Set `ADCS_API_KEY`, `ADCS_ORG_ID`, `ADCS_WORKSPACE_ID` in your environment
+3. Add `adcs` MCP server (see example JSON) and restart Cursor
+4. Verify: `cd backend && node scripts/smoke_api_keys_mcp.mjs`
+
 ## Remote
 
 `origin` → https://github.com/Busenuryurdakul/agentic-app-reporter.git

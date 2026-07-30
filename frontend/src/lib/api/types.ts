@@ -75,6 +75,7 @@ export type UserAPIKeyInfo = {
   id: string;
   user_id: string;
   name: string;
+  scopes?: string[];
   expires_at?: string | null;
   is_active: boolean;
   last_used_at?: string | null;
@@ -83,4 +84,6 @@ export type UserAPIKeyInfo = {
 
 export type CreateUserAPIKeyRequest = {
   name: string;
+  scopes?: string[];
+  expires_at?: string;
 };

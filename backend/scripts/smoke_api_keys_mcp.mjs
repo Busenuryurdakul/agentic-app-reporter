@@ -111,6 +111,34 @@ try {
   }
   ok("mcp call llm_health", llmHealth.data.result.provider);
 
+  const scoped = await api("POST", "/auth/api-keys", {
+    token: jwt,
+    body: { name: "profile-only", scopes: ["mcp:profile"] },
+    expect: [201],
+  });
+  const profileKey = scoped.data.key;
+  ok("create scoped api key", "mcp:profile");
+
+  const profileGetMe = await api("POST", "/mcp/tools/call", {
+    token: profileKey,
+    body: { name: "get_me" },
+  });
+  if (!profileGetMe.data.result?.email) {
+    throw new Error("scoped key get_me failed");
+  }
+  ok("scoped key get_me", profileGetMe.data.result.email);
+
+  try {
+    await api("POST", "/mcp/tools/call", {
+      token: profileKey,
+      body: { name: "llm_health" },
+      expect: [403],
+    });
+    ok("scoped key denies llm_health", "403");
+  } catch {
+    throw new Error("scoped key should deny llm_health with 403");
+  }
+
   const orgSlug = `mcp${String(ts).slice(-6)}`;
   const org = await api("POST", "/organizations", {
     token: jwt,
@@ -165,6 +193,24 @@ try {
     throw new Error("workspace_readiness missing overall score");
   }
   ok("mcp workspace_readiness", `score=${readiness.result.overall}`);
+
+  const missingDocId = await fetch(`${API}/mcp/tools/call`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${rawKey}`,
+      "X-Organization-ID": orgId,
+      "X-Workspace-ID": workspaceId,
+    },
+    body: JSON.stringify({
+      name: "get_document",
+      arguments: { workspace_id: workspaceId },
+    }),
+  });
+  if (missingDocId.status !== 400) {
+    throw new Error(`get_document without document_id expected 400, got ${missingDocId.status}`);
+  }
+  ok("mcp get_document validation", "400 without document_id");
 
   const keyId = created.data.id;
   await api("DELETE", `/auth/api-keys/${keyId}`, { token: jwt, expect: [204] });

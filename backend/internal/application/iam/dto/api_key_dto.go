@@ -8,7 +8,9 @@ import (
 
 // CreateUserAPIKeyRequest is the input for creating a user-scoped API key.
 type CreateUserAPIKeyRequest struct {
-	Name string `json:"name" validate:"required,min=1,max=255"`
+	Name      string   `json:"name" validate:"required,min=1,max=255"`
+	Scopes    []string `json:"scopes,omitempty"`
+	ExpiresAt *string  `json:"expires_at,omitempty"` // RFC3339 UTC
 }
 
 // UserAPIKeyResponse is the output for a user API key (raw key only on creation).
@@ -16,6 +18,7 @@ type UserAPIKeyResponse struct {
 	ID         uuid.UUID  `json:"id"`
 	UserID     uuid.UUID  `json:"user_id"`
 	Name       string     `json:"name"`
+	Scopes     []string   `json:"scopes,omitempty"`
 	Key        string     `json:"key,omitempty"`
 	ExpiresAt  *time.Time `json:"expires_at,omitempty"`
 	IsActive   bool       `json:"is_active"`

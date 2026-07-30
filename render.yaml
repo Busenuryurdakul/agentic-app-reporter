@@ -6,7 +6,7 @@
 #
 # LLM: Render has no GPU. Point LLM_BASE_URL at your VPS Ollama endpoint (HTTPS).
 # See backend/deployments/render-ollama-production.md
-# Blueprint sync trigger: 2026-07-28T01:10
+# Blueprint sync trigger: 2026-07-30T03:40 (MCP-2: user_api_keys migration 00022 via goose on start)
 
 services:
   - type: web
