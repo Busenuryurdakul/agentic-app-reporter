@@ -108,7 +108,7 @@ Next.js (App Router)
           → POST /api/v1/mcp/tools/call (internal)
 ```
 
-**Alternatif (daha ince v1):** Frontend doğrudan `/api/v1/mcp/tools/call` çağırır (JWT ile); LLM döngüsü yalnızca backend'de kalır.
+**Alternatif (daha ince v1):** Frontend doğrudan `/api/v1/mcp/tools/call` çağırır (JWT ile); LLM döngüsü yalnızca backend'de kalır. **WebMCP-1 bu yolu kullanır** — `frontend/src/features/agent/`, `frontend/src/lib/api/mcp.ts`.
 
 ### WebMCP vs Backend MCP
 
@@ -126,7 +126,7 @@ Next.js (App Router)
 |-----|--------|-------|
 | **MCP-1** ✅ | User API keys + HTTP tools + Cursor bridge | Bu repo |
 | **MCP-2** | Tool JSON Schema, scopes, CI smoke, prod verify | ✅ This release |
-| **WebMCP-1** | BFF chat route + MCP read tools + basit UI panel | Frontend agent drawer |
+| **WebMCP-1** | JWT ile MCP read tools + workspace agent panel | ✅ Frontend agent drawer |
 | **WebMCP-2** | Yazma araçları (`upsert_answer`, `generate_document`) + onay UX | Genişletilmiş catalog |
 | **WebMCP-3** | Streaming SSE, tool consent, audit log | Production-ready |
 

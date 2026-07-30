@@ -452,6 +452,32 @@ export const tr = {
     resetToEnv: "Ortam varsayılanına sıfırla",
     resetConfirm: "Organizasyon LLM ayarları silinecek ve ortam varsayılanları kullanılacak. Devam?",
   },
+  agent: {
+    title: "Workspace Asistanı",
+    description:
+      "Oturum JWT ile MCP read araçlarını çalıştırın. Workspace bağlamı otomatik eklenir.",
+    openPanel: "Asistan",
+    emptyHint: "Hazırlık, belge listesi veya LLM durumu için yukarıdaki kısayollardan birini seçin.",
+    running: "MCP aracı çalışıyor…",
+    jwtHint: "WebMCP v1 — yalnızca okuma araçları. API anahtarı tarayıcıda kullanılmaz.",
+    presetReadiness: "Hazırlık özeti",
+    presetDocuments: "Belgeleri listele",
+    presetLlmHealth: "LLM durumu",
+    readinessOverall: "Genel skor",
+    readinessProfile: "Profil",
+    readinessQuestionnaire: "Anket",
+    readinessDocuments: "Belgeler",
+    answeredRequired: "Zorunlu sorular",
+    missingQuestions: "Eksik sorular",
+    noDocuments: "Bu workspace'te henüz üretilmiş belge yok.",
+    documentCount: "Belge sayısı",
+    llmProvider: "Sağlayıcı",
+    llmStatus: "Durum",
+    llmMessage: "Mesaj",
+    llmHealthy: "Sağlıklı",
+    llmUnhealthy: "Sorunlu",
+  },
+
   apiKeys: {
     title: "API Anahtarları",
     description:
