@@ -1,6 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { AgentPanel } from "@/features/agent/agent-panel";
+import { AgentPanelProvider } from "@/features/agent/agent-panel-provider";
 import { AppBreadcrumbs, type Crumb } from "@/components/layout/app-breadcrumbs";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { TopBar } from "@/components/layout/top-bar";
@@ -22,7 +24,7 @@ export function DashboardShell({
   breadcrumbs,
   children,
 }: DashboardShellProps) {
-  return (
+  const shell = (
     <div className="flex min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(15,118,110,0.08),_transparent_32%),linear-gradient(180deg,#f7f8f8_0%,#eef1f1_100%)]">
       <div className="hidden md:block">
         <AppSidebar orgId={orgId} workspaceId={workspaceId} />
@@ -44,5 +46,16 @@ export function DashboardShell({
         </main>
       </div>
     </div>
+  );
+
+  if (!workspaceId) {
+    return shell;
+  }
+
+  return (
+    <AgentPanelProvider orgId={orgId} workspaceId={workspaceId}>
+      {shell}
+      <AgentPanel />
+    </AgentPanelProvider>
   );
 }
