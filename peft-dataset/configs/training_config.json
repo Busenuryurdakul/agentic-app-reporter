@@ -1,0 +1,30 @@
+{
+  "model_name": "Qwen/Qwen2.5-0.5B-Instruct",
+  "output_dir": "training-output/lora-adapter",
+  "train_file": "data/output/train.jsonl",
+  "validation_file": "data/output/val.jsonl",
+  "max_seq_length": 1024,
+  "num_train_epochs": 1,
+  "learning_rate": 0.0002,
+  "per_device_train_batch_size": 1,
+  "per_device_eval_batch_size": 1,
+  "gradient_accumulation_steps": 4,
+  "warmup_ratio": 0.03,
+  "weight_decay": 0.01,
+  "logging_steps": 1,
+  "save_strategy": "epoch",
+  "eval_strategy": "epoch",
+  "seed": 42,
+  "lora_r": 8,
+  "lora_alpha": 16,
+  "lora_dropout": 0.05,
+  "lora_target_modules": [
+    "q_proj",
+    "k_proj",
+    "v_proj",
+    "o_proj"
+  ],
+  "use_4bit": false,
+  "gradient_checkpointing": true,
+  "report_to": "none"
+}

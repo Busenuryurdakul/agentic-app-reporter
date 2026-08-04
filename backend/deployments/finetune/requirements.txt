@@ -1,0 +1,12 @@
+# Install on a CUDA Linux host (RunPod, WSL2, GPU VM).
+# Unsloth pulls compatible torch/CUDA wheels when installed via its docs:
+#   pip install unsloth
+# For a pinned stack, use the versions below after checking https://unsloth.ai
+
+unsloth
+trl>=0.15.0
+datasets>=3.0.0
+transformers>=4.46.0
+accelerate>=1.0.0
+bitsandbytes>=0.44.0
+peft>=0.13.0

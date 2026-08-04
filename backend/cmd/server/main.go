@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 
@@ -48,6 +49,7 @@ import (
 	exportUC "github.com/masterfabric-go/masterfabric/internal/application/export/usecase"
 	generationUC "github.com/masterfabric-go/masterfabric/internal/application/generation/usecase"
 	iamUC "github.com/masterfabric-go/masterfabric/internal/application/iam/usecase"
+	"github.com/masterfabric-go/masterfabric/internal/domain/llm"
 	llmsettingsUC "github.com/masterfabric-go/masterfabric/internal/application/llmsettings/usecase"
 	observeUC "github.com/masterfabric-go/masterfabric/internal/application/observe/usecase"
 	projectprofileUC "github.com/masterfabric-go/masterfabric/internal/application/projectprofile/usecase"
@@ -399,8 +401,31 @@ func buildDependencies(
 	readinessUC := observeUC.NewReadinessUseCase(completenessUC, missingInformationUC, documentRepo, workspaceRepo)
 	productSpecReadinessUC := generationUC.NewProductSpecReadinessUseCase(readinessUC, getProfileUC)
 
+	var peftFallbackProvider llm.LLMProvider = llmProvider
+	if fbURL := strings.TrimSpace(cfg.LLM.PeftFallbackBaseURL); fbURL != "" {
+		fbCfg := cfg.LLM
+		fbCfg.BaseURL = fbURL
+		if m := strings.TrimSpace(cfg.LLM.PeftFallbackModel); m != "" {
+			fbCfg.Model = m
+		}
+		if fbProvider, fbErr := infraLLM.NewProvider(fbCfg); fbErr == nil {
+			peftFallbackProvider = fbProvider
+		} else {
+			log.Warn("peft fallback provider init failed; using env default provider", "error", fbErr)
+		}
+	}
+	peftTestOrgID := uuid.Nil
+	if raw := strings.TrimSpace(cfg.LLM.PeftTestOrgID); raw != "" {
+		if parsed, parseErr := uuid.Parse(raw); parseErr == nil {
+			peftTestOrgID = parsed
+		} else {
+			log.Warn("invalid PEFT_TEST_ORG_ID", "value", raw, "error", parseErr)
+		}
+	}
+
 	generateDocumentUC := generationUC.NewGenerateDocumentUseCase(
-		contextBuilder, promptBuilder, orgLLMProviderResolver, llmProvider, documentRepo, generationLocker, productSpecReadinessUC, cfg.LLM.Enabled, log,
+		contextBuilder, promptBuilder, orgLLMProviderResolver, llmProvider, peftFallbackProvider, peftTestOrgID,
+		documentRepo, generationLocker, productSpecReadinessUC, cfg.LLM.Enabled, log,
 	)
 	regenerateDocumentUC := generationUC.NewRegenerateDocumentUseCase(generateDocumentUC, documentRepo, workspaceRepo)
 	listDocumentsUC := generationUC.NewListDocumentsUseCase(documentRepo, workspaceRepo)

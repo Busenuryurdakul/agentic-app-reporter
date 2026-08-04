@@ -200,6 +200,8 @@ JSONL satır şeması (`messages`: system / user / assistant):
 
 Detay: [peft-dataset-export-phase-ab.md](./issues/peft-dataset-export-phase-ab.md), [backend/STUDIO.md](../backend/STUDIO.md).
 
+Fine-tune (Unsloth LoRA, GPU host): [backend/deployments/finetune/README.md](../backend/deployments/finetune/README.md).
+
 ---
 
 ## Örnek iskelet (TR)

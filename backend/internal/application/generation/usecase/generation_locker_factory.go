@@ -3,8 +3,8 @@ package usecase
 import (
 	"time"
 
-	goredis "github.com/redis/go-redis/v9"
 	redislock "github.com/masterfabric-go/masterfabric/internal/infrastructure/redis"
+	goredis "github.com/redis/go-redis/v9"
 )
 
 // NewGenerationLocker returns a Redis-backed lock when client is non-nil, otherwise in-process.

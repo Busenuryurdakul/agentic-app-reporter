@@ -1,0 +1,36 @@
+{
+  "purpose": "Deterministic base vs LoRA comparison (do not run in full-training task)",
+  "base_model": "unsloth/gemma-2-2b-it-bnb-4bit",
+  "adapter_dir": "../../training-output/lora-full-final-30/lora_adapter",
+  "chat_template": "gemma2",
+  "generation": {
+    "seed": 3407,
+    "max_new_tokens": 512,
+    "do_sample": false,
+    "temperature": 1.0,
+    "top_p": 1.0
+  },
+  "system_prompt": "Sen deneyimli bir ürün yöneticisi ve teknik yazar asistanısın.",
+  "prompts": [
+    {
+      "id": "municipal-field-ops",
+      "text": "Bir belediye saha ekipleri görev ve arıza takip platformu için Product Spec oluştur. Platform web ve mobil kullanıcıları desteklemeli; görev atama, arıza kaydı, SLA takibi ve saha fotoğrafı yükleme içermeli."
+    },
+    {
+      "id": "health-appointment-portal",
+      "text": "Bir özel sağlık grubu için randevu ve telehealth portalı Product Spec yaz. Hasta self-servis, doktor takvimi, KVKK uyumu ve e-reçete entegrasyonu olsun."
+    },
+    {
+      "id": "warehouse-wms-lite",
+      "text": "KOBİ depolar için hafif WMS Product Spec hazırla. Barkod okuma, stok sayımı, sevkiyat dalgası planlama ve ERP CSV import/export içermeli."
+    },
+    {
+      "id": "ai-support-copilot",
+      "text": "B2B SaaS için RAG tabanlı destek copilot Product Spec oluştur. Ticket assist, önerilen yanıt, bilgi tabanı senkronizasyonu ve agent onay akışı tanımla."
+    },
+    {
+      "id": "fleet-ev-charging",
+      "text": "Filolar için EV şarj istasyonu yönetim paneli Product Spec yaz. İstasyon durumu, tarife yönetimi, sürücü kartları ve enerji maliyet raporu içermeli."
+    }
+  ]
+}

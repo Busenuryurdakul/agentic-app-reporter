@@ -33,4 +33,5 @@ type ExportOptions struct {
 	DryRun                      bool
 	WriteSkipped                bool
 	ScanAssistantSecrets        bool
+	ExcludeSmokeMarkers         bool
 }

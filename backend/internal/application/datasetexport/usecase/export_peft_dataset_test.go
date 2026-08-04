@@ -452,3 +452,72 @@ func TestExportPEFTDataset_ErrValidationWithoutOrg(t *testing.T) {
 	require.Error(t, err)
 	assert.True(t, errors.Is(err, domainErr.ErrValidation))
 }
+
+func TestExportPEFTDataset_ExcludeSmokeMarkers(t *testing.T) {
+	wsID := uuid.New()
+	orgID := uuid.New()
+	wsCtx := testWSContext(wsID)
+	body := validProductSpecBody() + "\n" + exportdto.SmokeDatasetMarker
+	doc := testApprovedDoc(wsID, orgID, wsCtx.Fingerprint(), body)
+	uc, _ := newExportUC([]*docModel.GeneratedDocument{doc}, &stubRebuilder{ctx: wsCtx}, &stubAssembler{})
+	out, err := uc.Execute(context.Background(), exportdto.ExportOptions{
+		OrganizationID:      orgID,
+		ExcludeSmokeMarkers: true,
+	})
+	require.ErrorIs(t, err, usecase.ErrNoExportRows)
+	require.Len(t, out.Skipped, 1)
+	assert.Equal(t, exportdto.SkipSmokeTestMarker, out.Skipped[0].Reason)
+}
+
+func TestExportPEFTDataset_SingleRowAlwaysTrain(t *testing.T) {
+	wsID := uuid.New()
+	orgID := uuid.New()
+	wsCtx := testWSContext(wsID)
+	doc := testApprovedDoc(wsID, orgID, wsCtx.Fingerprint(), validProductSpecBody())
+	uc, _ := newExportUC([]*docModel.GeneratedDocument{doc}, &stubRebuilder{ctx: wsCtx}, &stubAssembler{})
+	out, err := uc.Execute(context.Background(), exportdto.ExportOptions{OrganizationID: orgID})
+	require.NoError(t, err)
+	require.Len(t, out.Train, 1)
+	require.Len(t, out.Val, 0)
+}
+
+func TestExportPEFTDataset_SplitDeterministicNoOverlap(t *testing.T) {
+	orgID := uuid.New()
+	docs := make([]*docModel.GeneratedDocument, 0, 12)
+	contexts := make(map[uuid.UUID]*generationUC.WorkspaceLLMContext)
+	for i := 0; i < 12; i++ {
+		wsID := uuid.New()
+		ctx := testWSContext(wsID)
+		contexts[wsID] = ctx
+		docs = append(docs, testApprovedDoc(wsID, orgID, ctx.Fingerprint(), validProductSpecBody()))
+	}
+	repo := new(mockPEFTDocRepo)
+	repo.On("ListForPEFTExport", mock.Anything, mock.Anything).Return(docs, nil)
+	uc := usecase.NewExportPEFTDatasetUseCase(repo, &multiRebuilder{contexts: contexts}, &stubAssembler{})
+	opts := exportdto.ExportOptions{
+		OrganizationID: orgID,
+		Dedupe:         exportdto.DedupeNone,
+		SplitRatio:     0.9,
+		SplitSalt:      "determinism-test",
+	}
+
+	first, err := uc.Execute(context.Background(), opts)
+	require.NoError(t, err)
+	second, err := uc.Execute(context.Background(), opts)
+	require.NoError(t, err)
+
+	assert.Equal(t, len(first.Train), len(second.Train))
+	assert.Equal(t, len(first.Val), len(second.Val))
+	assert.Equal(t, len(docs), len(first.Train)+len(first.Val))
+
+	trainFPs := make(map[string]struct{})
+	for _, row := range first.Train {
+		trainFPs[row.Metadata.SourceFingerprint] = struct{}{}
+	}
+	for _, row := range first.Val {
+		fp := row.Metadata.SourceFingerprint
+		assert.NotEmpty(t, fp)
+		_, overlap := trainFPs[fp]
+		assert.False(t, overlap, "fingerprint must not appear in both train and val")
+	}
+}

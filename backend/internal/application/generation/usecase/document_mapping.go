@@ -6,6 +6,23 @@ import (
 	"github.com/masterfabric-go/masterfabric/internal/domain/document/quality"
 )
 
+func toStructuredGenerationDTO(attempt *structuredAttempt) *dto.StructuredGenerationMeta {
+	if attempt == nil {
+		return nil
+	}
+	return &dto.StructuredGenerationMeta{
+		StructuredOutputValid:    attempt.Meta.StructuredOutputValid,
+		StructuredRepairAttempts: attempt.Meta.StructuredRepairAttempts,
+		JSONParseSucceeded:       attempt.Meta.JSONParseSucceeded,
+		MarkdownRenderSucceeded:  attempt.Meta.MarkdownRenderSucceeded,
+		RequiredFieldCoverage:    attempt.Meta.RequiredFieldCoverage,
+		QualityGatePassed:        attempt.Gate.Passed,
+		QualityGateReasons:       attempt.Gate.Reasons,
+		UsedFallback:             attempt.UsedFallback,
+		FallbackReason:           attempt.FallbackReason,
+	}
+}
+
 func toDocumentInfo(doc *model.GeneratedDocument) *dto.DocumentInfo {
 	if doc == nil {
 		return nil

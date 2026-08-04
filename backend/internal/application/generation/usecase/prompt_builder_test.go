@@ -127,6 +127,7 @@ func TestPromptBuilder_ProductSpec_IncludesRequiredSections(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, req.SystemPrompt, "ürün spesifikasyonu")
 	assert.Contains(t, req.UserPrompt, "## 1. Özet ve hedef kullanıcı")
+	assert.False(t, req.JSONMode)
 }
 
 func TestSanitizeJSONValue_RedactsNestedSecrets(t *testing.T) {

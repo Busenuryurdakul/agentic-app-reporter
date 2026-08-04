@@ -19,6 +19,7 @@ const (
 	SkipWorkspaceNotFound   SkipReason = "workspace_not_found"
 	SkipInvalidRow          SkipReason = "invalid_row"
 	SkipAssistantSecret     SkipReason = "assistant_secret_pattern"
+	SkipSmokeTestMarker     SkipReason = "smoke_test_marker"
 )
 
 // ExportManifest summarizes an export run (written alongside JSONL files).

@@ -50,7 +50,21 @@ type DocumentInfo struct {
 	CreatedBy         *uuid.UUID      `json:"created_by,omitempty"`
 	CreatedAt         time.Time       `json:"created_at"`
 	UpdatedAt         time.Time       `json:"updated_at"`
-	Quality           DocumentQuality `json:"quality"`
+	Quality           DocumentQuality            `json:"quality"`
+	StructuredGeneration *StructuredGenerationMeta `json:"structured_generation,omitempty"`
+}
+
+// StructuredGenerationMeta exposes transient structured pipeline diagnostics (API-only).
+type StructuredGenerationMeta struct {
+	StructuredOutputValid    bool     `json:"structured_output_valid"`
+	StructuredRepairAttempts int      `json:"structured_repair_attempts"`
+	JSONParseSucceeded       bool     `json:"json_parse_succeeded"`
+	MarkdownRenderSucceeded  bool     `json:"markdown_render_succeeded"`
+	RequiredFieldCoverage    float64  `json:"required_field_coverage"`
+	QualityGatePassed        bool     `json:"quality_gate_passed"`
+	QualityGateReasons       []string `json:"quality_gate_reasons,omitempty"`
+	UsedFallback             bool     `json:"used_fallback,omitempty"`
+	FallbackReason           string   `json:"fallback_reason,omitempty"`
 }
 
 // DocumentSummary omits markdown_body for list responses.
