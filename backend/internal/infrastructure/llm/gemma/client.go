@@ -17,9 +17,10 @@ import (
 )
 
 const (
-	defaultModel       = "gemma"
-	maxErrorBodyBytes  = 512
-	defaultHTTPTimeout = 60 * time.Second
+	defaultModel              = "gemma"
+	maxErrorBodyBytes         = 512
+	defaultHTTPTimeout        = 60 * time.Second
+	hfMaxCompletionTokens     = 6144
 )
 
 // Client talks to an OpenAI-compatible Chat Completions API that serves Gemma
@@ -89,10 +90,17 @@ func (c *Client) Name() string {
 }
 
 type chatRequest struct {
-	Model     string         `json:"model"`
-	Messages  []chatMessage  `json:"messages"`
-	MaxTokens int            `json:"max_tokens,omitempty"`
-	Stream    *bool          `json:"stream,omitempty"`
+	Model          string          `json:"model"`
+	Messages       []chatMessage   `json:"messages"`
+	MaxTokens      int             `json:"max_tokens,omitempty"`
+	Temperature    *float64        `json:"temperature,omitempty"`
+	TopP           *float64        `json:"top_p,omitempty"`
+	Stream         *bool           `json:"stream,omitempty"`
+	ResponseFormat *responseFormat `json:"response_format,omitempty"`
+}
+
+type responseFormat struct {
+	Type string `json:"type"`
 }
 
 type chatMessage struct {
@@ -136,11 +144,22 @@ func (c *Client) Generate(ctx context.Context, req llm.GenerateRequest) (llm.Gen
 	body := chatRequest{
 		Model:     c.model,
 		Messages:  messages,
-		MaxTokens: req.MaxTokens,
+		MaxTokens: c.effectiveMaxTokens(req.MaxTokens),
+	}
+	if req.Temperature > 0 {
+		t := req.Temperature
+		body.Temperature = &t
+	}
+	if req.TopP > 0 {
+		p := req.TopP
+		body.TopP = &p
 	}
 	if c.includeStreamFalse {
 		stream := false
 		body.Stream = &stream
+	}
+	if req.JSONMode {
+		body.ResponseFormat = &responseFormat{Type: "json_object"}
 	}
 	payload, err := json.Marshal(body)
 	if err != nil {
@@ -269,6 +288,16 @@ func (c *Client) Health(ctx context.Context) (llm.ProviderHealth, error) {
 		Healthy:  false,
 		Message:  fmt.Sprintf("%s provider unhealthy (HTTP %d)", c.providerName, resp.StatusCode),
 	}, nil
+}
+
+func (c *Client) effectiveMaxTokens(requested int) int {
+	if requested <= 0 {
+		return 0
+	}
+	if config.IsHuggingFaceInferenceBaseURL(c.baseURL) && requested > hfMaxCompletionTokens {
+		return hfMaxCompletionTokens
+	}
+	return requested
 }
 
 func buildChatMessages(req llm.GenerateRequest, useNativeRoles bool) []chatMessage {

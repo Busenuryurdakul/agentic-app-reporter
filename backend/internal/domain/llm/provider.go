@@ -25,6 +25,11 @@ type GenerateRequest struct {
 	SystemPrompt string
 	UserPrompt   string
 	MaxTokens    int
+	// Temperature and TopP are optional sampling controls (0 = omit from provider request).
+	Temperature float64
+	TopP        float64
+	// JSONMode requests JSON object output when supported by the provider adapter.
+	JSONMode bool
 }
 
 // GenerateResponse is the provider-agnostic generation output.
