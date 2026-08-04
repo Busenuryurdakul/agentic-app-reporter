@@ -20,6 +20,27 @@ export type DocumentQuality = {
   language_declared: boolean;
   section_coverage_ok?: boolean;
   quality_score: number;
+  section_coverage?: number;
+  expected_sections?: number;
+  duplicate_text_detected?: boolean;
+  placeholder_detected?: boolean;
+  markdown_valid?: boolean;
+  quality_status?: "pass" | "warning" | "fail" | string;
+  issues?: string[];
+};
+
+export type ProductSpecReadinessIssue = {
+  code: string;
+  field?: string;
+  message: string;
+};
+
+export type ProductSpecReadinessResult = {
+  can_generate: boolean;
+  readiness_score: number;
+  blocking_issues: ProductSpecReadinessIssue[];
+  warnings: ProductSpecReadinessIssue[];
+  missing_required_count: number;
 };
 
 export type DocumentSummary = {
@@ -117,5 +138,12 @@ export const documentsApi = {
     return apiRequest<ProviderHealthInfo>("/api/v1/llm/health", {
       organizationId: null,
     });
+  },
+
+  productSpecReadiness(workspaceId: string) {
+    return apiRequest<ProductSpecReadinessResult>(
+      `/api/v1/workspaces/${workspaceId}/documents/product-spec-readiness`,
+      workspaceOpts(workspaceId),
+    );
   },
 };

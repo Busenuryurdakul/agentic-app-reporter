@@ -295,7 +295,7 @@ func buildDependencies(
 	deps.LLMProvider = llmProvider
 	providerHealthUC := generationUC.NewProviderHealthUseCase(llmProvider, cfg.LLM.Enabled)
 	// Document use-cases are wired after DB repos are available; health works without DB.
-	deps.GenerationHandler = generationHandler.NewHandler(providerHealthUC, nil, nil, nil, nil, nil)
+	deps.GenerationHandler = generationHandler.NewHandler(providerHealthUC, nil, nil, nil, nil, nil, nil)
 	log.Info("llm provider configured",
 		"provider", llmProvider.Name(),
 		"enabled", cfg.LLM.Enabled,
@@ -394,16 +394,19 @@ func buildDependencies(
 	promptBuilder := generationUC.NewPromptBuilder()
 	lockTTL := time.Duration(cfg.LLM.TimeoutSeconds+30) * time.Second
 	generationLocker := generationUC.NewGenerationLocker(redisClient, lockTTL)
+
+	// Phase 4 S1: readiness + observe summary (deterministic; reuses completeness + missing-info)
+	readinessUC := observeUC.NewReadinessUseCase(completenessUC, missingInformationUC, documentRepo, workspaceRepo)
+	productSpecReadinessUC := generationUC.NewProductSpecReadinessUseCase(readinessUC, getProfileUC)
+
 	generateDocumentUC := generationUC.NewGenerateDocumentUseCase(
-		contextBuilder, promptBuilder, orgLLMProviderResolver, llmProvider, documentRepo, generationLocker, cfg.LLM.Enabled, log,
+		contextBuilder, promptBuilder, orgLLMProviderResolver, llmProvider, documentRepo, generationLocker, productSpecReadinessUC, cfg.LLM.Enabled, log,
 	)
 	regenerateDocumentUC := generationUC.NewRegenerateDocumentUseCase(generateDocumentUC, documentRepo, workspaceRepo)
 	listDocumentsUC := generationUC.NewListDocumentsUseCase(documentRepo, workspaceRepo)
 	getDocumentUC := generationUC.NewGetDocumentUseCase(documentRepo, workspaceRepo)
 	approveDocumentUC := generationUC.NewApproveDocumentUseCase(documentRepo, workspaceRepo)
 
-	// Phase 4 S1: readiness + observe summary (deterministic; reuses completeness + missing-info)
-	readinessUC := observeUC.NewReadinessUseCase(completenessUC, missingInformationUC, documentRepo, workspaceRepo)
 	observeSummaryUC := observeUC.NewObserveSummaryUseCase(documentRepo, workspaceRepo)
 
 	// Phase 4 S5: sync Markdown / ZIP export (approved → succeeded fallback)
@@ -467,6 +470,7 @@ func buildDependencies(
 		listDocumentsUC,
 		getDocumentUC,
 		approveDocumentUC,
+		productSpecReadinessUC,
 	)
 	deps.ObserveHandler = observeHandler.NewHandler(readinessUC, observeSummaryUC)
 	deps.ExportHandler = exportHandler.NewHandler(exportPackageUC)

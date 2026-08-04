@@ -284,6 +284,7 @@ func New(deps Dependencies) *chi.Mux {
 				if deps.GenerationHandler != nil {
 					r.Route("/documents", func(r chi.Router) {
 						r.With(maybeRequirePermission(deps.RBACService, "document:read")).Get("/", deps.GenerationHandler.ListDocuments)
+						r.With(maybeRequirePermission(deps.RBACService, "document:read")).Get("/product-spec-readiness", deps.GenerationHandler.ProductSpecReadiness)
 						r.With(maybeRequirePermission(deps.RBACService, "generation:run")).Post("/generate", deps.GenerationHandler.GenerateDocument)
 						r.With(maybeRequirePermission(deps.RBACService, "document:read")).Get("/{documentId}", deps.GenerationHandler.GetDocument)
 						r.With(maybeRequirePermission(deps.RBACService, "generation:run")).Post("/{documentId}/regenerate", deps.GenerationHandler.RegenerateDocument)

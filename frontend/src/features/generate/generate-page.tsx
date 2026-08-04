@@ -40,6 +40,10 @@ import {
   useLlmActive,
   useRegisterLlmActive,
 } from "@/features/generate/llm-active-context";
+import {
+  ProductSpecReadinessPanel,
+  productSpecGenerateDisabled,
+} from "@/features/generate/product-spec-readiness-panel";
 
 function formatDate(value: string) {
   if (!value) return "—";
@@ -88,6 +92,14 @@ export function GeneratePage({
     queryFn: () => documentsApi.list(workspaceId),
   });
 
+  const isProductSpec = documentType === "product_spec";
+
+  const productSpecReadinessQuery = useQuery({
+    queryKey: ["product-spec-readiness", workspaceId],
+    queryFn: () => documentsApi.productSpecReadiness(workspaceId),
+    enabled: isProductSpec,
+  });
+
   const generateMutation = useMutation({
     mutationFn: () =>
       documentsApi.generate(workspaceId, {
@@ -129,6 +141,14 @@ export function GeneratePage({
   const health = healthQuery.data;
   const isLoading = documentsQuery.isLoading;
   const isError = documentsQuery.isError;
+  const productSpecReadiness = productSpecReadinessQuery.data;
+  const generateDisabled =
+    generateMutation.isPending ||
+    productSpecGenerateDisabled(
+      documentType,
+      productSpecReadinessQuery.isLoading,
+      productSpecReadiness,
+    );
 
   return (
     <DashboardShell
@@ -224,8 +244,13 @@ export function GeneratePage({
           </div>
           <Button
             onClick={onGenerate}
-            disabled={generateMutation.isPending}
+            disabled={generateDisabled}
             className="md:min-w-40"
+            title={
+              isProductSpec && productSpecReadiness && !productSpecReadiness.can_generate
+                ? tr.generate.readinessBlockedGenerate
+                : undefined
+            }
           >
             {generateMutation.isPending ? (
               <>
@@ -241,6 +266,17 @@ export function GeneratePage({
           </Button>
         </CardContent>
       </Card>
+
+      <ProductSpecReadinessPanel
+        orgId={orgId}
+        workspaceId={workspaceId}
+        enabled={isProductSpec}
+        data={productSpecReadiness}
+        isLoading={productSpecReadinessQuery.isLoading}
+        isError={productSpecReadinessQuery.isError}
+        error={productSpecReadinessQuery.error}
+        onRetry={() => productSpecReadinessQuery.refetch()}
+      />
 
       {isLoading ? (
         <div className="space-y-3">

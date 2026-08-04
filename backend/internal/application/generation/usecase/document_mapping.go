@@ -59,6 +59,23 @@ func toDocumentSummary(doc *model.GeneratedDocument) dto.DocumentSummary {
 }
 
 func toDocumentQuality(doc *model.GeneratedDocument) dto.DocumentQuality {
+	if model.NormalizeDocumentType(doc.DocumentType) == model.DocumentTypeProductSpec {
+		eval := quality.EvaluateProductSpec(doc.MarkdownBody, doc.Language)
+		return dto.DocumentQuality{
+			HasHeading:            eval.HasHeading,
+			MinLengthOK:           eval.MinLengthOK,
+			LanguageDeclared:      eval.LanguageDeclared,
+			SectionCoverageOK:     eval.SectionCoverageOK,
+			QualityScore:          eval.QualityScore,
+			SectionCoverage:       eval.SectionCoverage,
+			ExpectedSections:      eval.ExpectedSections,
+			DuplicateTextDetected: eval.DuplicateTextDetected,
+			PlaceholderDetected:   eval.PlaceholderDetected,
+			MarkdownValid:         eval.MarkdownValid,
+			QualityStatus:         eval.QualityStatus,
+			Issues:                eval.Issues,
+		}
+	}
 	s := quality.EvaluateForType(doc.MarkdownBody, doc.Language, doc.DocumentType)
 	return dto.DocumentQuality{
 		HasHeading:        s.HasHeading,

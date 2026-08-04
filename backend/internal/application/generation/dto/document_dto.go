@@ -16,11 +16,18 @@ type GenerateDocumentRequest struct {
 
 // DocumentQuality is the deterministic heuristic quality payload (Phase 4 S2).
 type DocumentQuality struct {
-	HasHeading        bool `json:"has_heading"`
-	MinLengthOK       bool `json:"min_length_ok"`
-	LanguageDeclared  bool `json:"language_declared"`
-	SectionCoverageOK bool `json:"section_coverage_ok,omitempty"`
-	QualityScore      int  `json:"quality_score"`
+	HasHeading            bool     `json:"has_heading"`
+	MinLengthOK           bool     `json:"min_length_ok"`
+	LanguageDeclared      bool     `json:"language_declared"`
+	SectionCoverageOK     bool     `json:"section_coverage_ok,omitempty"`
+	QualityScore          int      `json:"quality_score"`
+	SectionCoverage       int      `json:"section_coverage,omitempty"`
+	ExpectedSections      int      `json:"expected_sections,omitempty"`
+	DuplicateTextDetected bool     `json:"duplicate_text_detected,omitempty"`
+	PlaceholderDetected   bool     `json:"placeholder_detected,omitempty"`
+	MarkdownValid         bool     `json:"markdown_valid,omitempty"`
+	QualityStatus         string   `json:"quality_status,omitempty"`
+	Issues                []string `json:"issues,omitempty"`
 }
 
 // DocumentInfo is the full document payload (get/generate responses).

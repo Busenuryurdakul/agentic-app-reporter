@@ -22,16 +22,22 @@ type ProviderResolver interface {
 	Resolve(ctx context.Context, orgID uuid.UUID) (llm.LLMProvider, error)
 }
 
+// productSpecReadinessGate evaluates pre-generation Product Spec readiness.
+type productSpecReadinessGate interface {
+	Execute(ctx context.Context, workspaceID uuid.UUID) (*dto.ProductSpecReadinessResult, error)
+}
+
 // GenerateDocumentUseCase builds workspace context, calls LLMProvider, and persists the document.
 type GenerateDocumentUseCase struct {
-	contextBuilder     *WorkspaceContextBuilder
-	promptBuilder      *PromptBuilder
-	providerResolver   ProviderResolver
-	defaultProvider    llm.LLMProvider
-	docRepo            docRepo.DocumentRepository
-	gate               GenerationLocker
-	llmEnabled         bool
-	logger             *slog.Logger
+	contextBuilder         *WorkspaceContextBuilder
+	promptBuilder          *PromptBuilder
+	providerResolver       ProviderResolver
+	defaultProvider        llm.LLMProvider
+	docRepo                docRepo.DocumentRepository
+	gate                   GenerationLocker
+	productSpecReadinessUC productSpecReadinessGate
+	llmEnabled             bool
+	logger                 *slog.Logger
 }
 
 // NewGenerateDocumentUseCase creates a GenerateDocumentUseCase.
@@ -42,6 +48,7 @@ func NewGenerateDocumentUseCase(
 	defaultProvider llm.LLMProvider,
 	docRepo docRepo.DocumentRepository,
 	gate GenerationLocker,
+	productSpecReadinessUC productSpecReadinessGate,
 	llmEnabled bool,
 	logger *slog.Logger,
 ) *GenerateDocumentUseCase {
@@ -52,14 +59,15 @@ func NewGenerateDocumentUseCase(
 		gate = NewGenerationGate()
 	}
 	return &GenerateDocumentUseCase{
-		contextBuilder:   contextBuilder,
-		promptBuilder:    promptBuilder,
-		providerResolver: providerResolver,
-		defaultProvider:  defaultProvider,
-		docRepo:          docRepo,
-		gate:             gate,
-		llmEnabled:       llmEnabled,
-		logger:           logger,
+		contextBuilder:         contextBuilder,
+		promptBuilder:          promptBuilder,
+		providerResolver:       providerResolver,
+		defaultProvider:        defaultProvider,
+		docRepo:                docRepo,
+		gate:                   gate,
+		productSpecReadinessUC: productSpecReadinessUC,
+		llmEnabled:             llmEnabled,
+		logger:                 logger,
 	}
 }
 
@@ -91,6 +99,20 @@ func (uc *GenerateDocumentUseCase) Execute(
 	}
 	docType := docModel.NormalizeDocumentType(req.DocumentType)
 
+	if docType == docModel.DocumentTypeProductSpec && uc.productSpecReadinessUC != nil {
+		readiness, gateErr := uc.productSpecReadinessUC.Execute(ctx, workspaceID)
+		if gateErr != nil {
+			return nil, gateErr
+		}
+		if readiness != nil && !readiness.CanGenerate {
+			msg := "Product Spec üretimi için zorunlu proje bilgileri eksik"
+			if len(readiness.BlockingIssues) > 0 && strings.TrimSpace(readiness.BlockingIssues[0].Message) != "" {
+				msg = readiness.BlockingIssues[0].Message
+			}
+			return nil, domainErr.New(domainErr.ErrValidation, msg, nil)
+		}
+	}
+
 	wsCtx, err := uc.contextBuilder.Build(ctx, workspaceID, BuildContextOptions{
 		LanguageOverride: req.Language,
 	})
@@ -106,6 +128,9 @@ func (uc *GenerateDocumentUseCase) Execute(
 	prompt, err := uc.promptBuilder.Build(wsCtx, docType)
 	if err != nil {
 		return nil, domainErr.New(domainErr.ErrInternal, "failed to build prompt", err)
+	}
+	if docType == docModel.DocumentTypeProductSpec {
+		prompt.MaxTokens = 4096
 	}
 
 	answeredCount := 0

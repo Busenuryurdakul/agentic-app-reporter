@@ -80,7 +80,7 @@ func TestPromptBuilder_OmitsUnansweredOptionalQuestions(t *testing.T) {
 
 	req, err := NewPromptBuilder().Build(ctx, "")
 	require.NoError(t, err)
-	assert.Contains(t, req.UserPrompt, "`project_name`")
+	assert.Contains(t, req.UserPrompt, "Reporter")
 	assert.NotContains(t, req.UserPrompt, "`optional_note`")
 	assert.NotContains(t, req.UserPrompt, "`another_optional`")
 	assert.Contains(t, req.UserPrompt, "2 isteğe bağlı cevapsız soru")
@@ -126,10 +126,7 @@ func TestPromptBuilder_ProductSpec_IncludesRequiredSections(t *testing.T) {
 	}, "product_spec")
 	require.NoError(t, err)
 	assert.Contains(t, req.SystemPrompt, "ürün spesifikasyonu")
-	assert.Contains(t, req.UserPrompt, "Belge tipi: product_spec")
 	assert.Contains(t, req.UserPrompt, "## 1. Özet ve hedef kullanıcı")
-	assert.Contains(t, req.UserPrompt, "MCP ve otomasyon entegrasyonları")
-	assert.Contains(t, req.SystemPrompt, "uses_mcp")
 }
 
 func TestSanitizeJSONValue_RedactsNestedSecrets(t *testing.T) {

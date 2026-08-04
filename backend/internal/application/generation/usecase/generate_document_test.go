@@ -164,6 +164,7 @@ func TestGenerateDocument_SucceedsWithMockProvider(t *testing.T) {
 		provider,
 		docRepo,
 		NewGenerationGate(),
+		nil,
 		true,
 		nil,
 	)
@@ -187,6 +188,7 @@ func TestGenerateDocument_DisabledReturns503(t *testing.T) {
 		&stubLLMProvider{name: "mock"},
 		docRepo,
 		NewGenerationGate(),
+		nil,
 		false,
 		nil,
 	)
@@ -209,6 +211,7 @@ func TestGenerateDocument_RejectsOverlappingRequests(t *testing.T) {
 		&stubLLMProvider{name: "mock"},
 		docRepo,
 		gate,
+		nil,
 		true,
 		nil,
 	)
@@ -239,6 +242,7 @@ func TestGenerateDocument_ProviderFailureMapsTo502AndPersistsFailedRow(t *testin
 		&stubLLMProvider{name: "mock", err: errors.New("upstream boom")},
 		docRepo,
 		NewGenerationGate(),
+		nil,
 		true,
 		nil,
 	)
@@ -246,6 +250,65 @@ func TestGenerateDocument_ProviderFailureMapsTo502AndPersistsFailedRow(t *testin
 	require.Error(t, err)
 	assert.True(t, errors.Is(err, domainErr.ErrBadGateway))
 	docRepo.AssertExpectations(t)
+}
+
+type stubProductSpecReadinessGate struct {
+	result *dto.ProductSpecReadinessResult
+	err    error
+}
+
+func (s *stubProductSpecReadinessGate) Execute(context.Context, uuid.UUID) (*dto.ProductSpecReadinessResult, error) {
+	if s.err != nil {
+		return nil, s.err
+	}
+	return s.result, nil
+}
+
+func TestGenerateDocument_ProductSpecBlockedWhenNotReady(t *testing.T) {
+	orgID, wsID, wsRepo, profileRepo, setRepo, questionRepo, answerRepo, docRepo := setupGenerateFixture(t)
+
+	uc := NewGenerateDocumentUseCase(
+		NewWorkspaceContextBuilder(wsRepo, profileRepo, setRepo, questionRepo, answerRepo),
+		NewPromptBuilder(),
+		nil,
+		&stubLLMProvider{name: "mock"},
+		docRepo,
+		NewGenerationGate(),
+		&stubProductSpecReadinessGate{result: &dto.ProductSpecReadinessResult{
+			CanGenerate: false,
+			BlockingIssues: []dto.ProductSpecReadinessIssue{{
+				Code: "missing_project_description", Message: "Proje açıklaması boş.",
+			}},
+		}},
+		true,
+		nil,
+	)
+
+	_, err := uc.Execute(orgContext(orgID), wsID, dto.GenerateDocumentRequest{DocumentType: "product_spec"})
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, domainErr.ErrValidation))
+}
+
+func TestGenerateDocument_StudioMarkdownIgnoresProductSpecGate(t *testing.T) {
+	orgID, wsID, wsRepo, profileRepo, setRepo, questionRepo, answerRepo, docRepo := setupGenerateFixture(t)
+
+	docRepo.On("Create", orgContext(orgID), mock.AnythingOfType("*model.GeneratedDocument")).Return(nil)
+
+	uc := NewGenerateDocumentUseCase(
+		NewWorkspaceContextBuilder(wsRepo, profileRepo, setRepo, questionRepo, answerRepo),
+		NewPromptBuilder(),
+		nil,
+		&stubLLMProvider{name: "mock", resp: llm.GenerateResponse{Content: "# Doc\n\nok\n", Provider: "mock"}},
+		docRepo,
+		NewGenerationGate(),
+		&stubProductSpecReadinessGate{result: &dto.ProductSpecReadinessResult{CanGenerate: false}},
+		true,
+		nil,
+	)
+
+	out, err := uc.Execute(orgContext(orgID), wsID, dto.GenerateDocumentRequest{DocumentType: "studio_markdown"})
+	require.NoError(t, err)
+	require.NotNil(t, out)
 }
 
 func TestListDocuments_OmitsBodiesInSummary(t *testing.T) {
@@ -272,9 +335,7 @@ func TestListDocuments_OmitsBodiesInSummary(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, out.Documents, 1)
 	assert.Equal(t, "A", out.Documents[0].Title)
-	// Summary type has no MarkdownBody field — ensure list DTO path is used.
 	assert.Equal(t, "mock", out.Documents[0].ProviderName)
-	// Quality is computed server-side from body without exposing markdown_body.
 	assert.True(t, out.Documents[0].Quality.HasHeading)
 	assert.False(t, out.Documents[0].Quality.MinLengthOK)
 	assert.Equal(t, 30, out.Documents[0].Quality.QualityScore)

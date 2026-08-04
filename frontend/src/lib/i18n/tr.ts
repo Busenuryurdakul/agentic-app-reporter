@@ -309,6 +309,20 @@ export const tr = {
       message
         ? `Sağlayıcı sorunlu · ${provider}: ${message}`
         : `Sağlayıcı sorunlu · ${provider}`,
+    readinessPanelTitle: "Product Spec hazırlık kontrolü",
+    readinessPanelHint:
+      "Üretim öncesi profil ve anket verilerinin yeterliliği değerlendirilir.",
+    readinessScoreLabel: "Hazırlık",
+    missingRequiredLabel: "Eksik zorunlu soru",
+    readinessBlockingTitle: "Üretim engellendi",
+    readinessWarningsTitle: "Eksik veya zayıf bilgiler",
+    readinessLooksGood: "Kritik alanlar dolu görünüyor.",
+    readinessContinueHint:
+      "Uyarılar kaliteyi düşürebilir; yine de üretime devam edebilirsiniz.",
+    readinessPlanLink: "Planı tamamla",
+    readinessQuestionnaireLink: "Anketlere git",
+    readinessLoadFailed: "Hazırlık bilgisi yüklenemedi",
+    readinessBlockedGenerate: "Zorunlu proje bilgileri tamamlanmadan Product Spec üretilemez.",
     statusSucceeded: "Başarılı",
     statusFailed: "Başarısız",
     statusPending: "Beklemede",
@@ -452,6 +466,7 @@ export const tr = {
     resetToEnv: "Ortam varsayılanına sıfırla",
     resetConfirm: "Organizasyon LLM ayarları silinecek ve ortam varsayılanları kullanılacak. Devam?",
   },
+
   apiKeys: {
     title: "API Anahtarları",
     description:

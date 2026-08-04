@@ -57,6 +57,7 @@ func TestRegenerateDocument_CreatesNewKeepsSource(t *testing.T) {
 		},
 		docRepo,
 		NewGenerationGate(),
+		nil,
 		true,
 		nil,
 	)
@@ -90,6 +91,7 @@ func TestRegenerateDocument_NotFound(t *testing.T) {
 		&stubLLMProvider{name: "mock"},
 		docRepo,
 		NewGenerationGate(),
+		nil,
 		true,
 		nil,
 	)
