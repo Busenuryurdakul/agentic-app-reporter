@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 
+	exportdto "github.com/masterfabric-go/masterfabric/internal/application/datasetexport/dto"
 	generationUC "github.com/masterfabric-go/masterfabric/internal/application/generation/usecase"
 	"github.com/google/uuid"
 	"github.com/masterfabric-go/masterfabric/internal/domain/llm"
@@ -62,6 +63,15 @@ func containsAssistantSecretPattern(body string) bool {
 	lower := strings.ToLower(body)
 	for _, p := range assistantSecretPatterns {
 		if strings.Contains(lower, strings.ToLower(p)) {
+			return true
+		}
+	}
+	return false
+}
+
+func containsSmokeDatasetMarker(parts ...string) bool {
+	for _, part := range parts {
+		if strings.Contains(part, exportdto.SmokeDatasetMarker) {
 			return true
 		}
 	}

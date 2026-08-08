@@ -41,6 +41,8 @@ dist/
 tmp/
 .tmp/
 peft-export/
+deployments/finetune/output/
+deployments/finetune/.venv/
 
 # Air hot-reload
 bin/air

@@ -55,8 +55,11 @@ func TestRegenerateDocument_CreatesNewKeepsSource(t *testing.T) {
 				Model:    "mock-model",
 			},
 		},
+		nil,
+		uuid.Nil,
 		docRepo,
 		NewGenerationGate(),
+		nil,
 		true,
 		nil,
 	)
@@ -88,8 +91,11 @@ func TestRegenerateDocument_NotFound(t *testing.T) {
 		NewPromptBuilder(),
 		nil,
 		&stubLLMProvider{name: "mock"},
+		nil,
+		uuid.Nil,
 		docRepo,
 		NewGenerationGate(),
+		nil,
 		true,
 		nil,
 	)

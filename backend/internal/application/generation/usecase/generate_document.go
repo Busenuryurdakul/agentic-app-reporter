@@ -22,16 +22,24 @@ type ProviderResolver interface {
 	Resolve(ctx context.Context, orgID uuid.UUID) (llm.LLMProvider, error)
 }
 
+// productSpecReadinessGate evaluates pre-generation Product Spec readiness.
+type productSpecReadinessGate interface {
+	Execute(ctx context.Context, workspaceID uuid.UUID) (*dto.ProductSpecReadinessResult, error)
+}
+
 // GenerateDocumentUseCase builds workspace context, calls LLMProvider, and persists the document.
 type GenerateDocumentUseCase struct {
-	contextBuilder     *WorkspaceContextBuilder
-	promptBuilder      *PromptBuilder
-	providerResolver   ProviderResolver
-	defaultProvider    llm.LLMProvider
-	docRepo            docRepo.DocumentRepository
-	gate               GenerationLocker
-	llmEnabled         bool
-	logger             *slog.Logger
+	contextBuilder         *WorkspaceContextBuilder
+	promptBuilder          *PromptBuilder
+	providerResolver       ProviderResolver
+	defaultProvider        llm.LLMProvider
+	fallbackProvider       llm.LLMProvider
+	peftTestOrgID          uuid.UUID
+	docRepo                docRepo.DocumentRepository
+	gate                   GenerationLocker
+	productSpecReadinessUC productSpecReadinessGate
+	llmEnabled             bool
+	logger                 *slog.Logger
 }
 
 // NewGenerateDocumentUseCase creates a GenerateDocumentUseCase.
@@ -40,8 +48,11 @@ func NewGenerateDocumentUseCase(
 	promptBuilder *PromptBuilder,
 	providerResolver ProviderResolver,
 	defaultProvider llm.LLMProvider,
+	fallbackProvider llm.LLMProvider,
+	peftTestOrgID uuid.UUID,
 	docRepo docRepo.DocumentRepository,
 	gate GenerationLocker,
+	productSpecReadinessUC productSpecReadinessGate,
 	llmEnabled bool,
 	logger *slog.Logger,
 ) *GenerateDocumentUseCase {
@@ -52,14 +63,17 @@ func NewGenerateDocumentUseCase(
 		gate = NewGenerationGate()
 	}
 	return &GenerateDocumentUseCase{
-		contextBuilder:   contextBuilder,
-		promptBuilder:    promptBuilder,
-		providerResolver: providerResolver,
-		defaultProvider:  defaultProvider,
-		docRepo:          docRepo,
-		gate:             gate,
-		llmEnabled:       llmEnabled,
-		logger:           logger,
+		contextBuilder:         contextBuilder,
+		promptBuilder:          promptBuilder,
+		providerResolver:       providerResolver,
+		defaultProvider:        defaultProvider,
+		fallbackProvider:       fallbackProvider,
+		peftTestOrgID:          peftTestOrgID,
+		docRepo:                docRepo,
+		gate:                   gate,
+		productSpecReadinessUC: productSpecReadinessUC,
+		llmEnabled:             llmEnabled,
+		logger:                 logger,
 	}
 }
 
@@ -91,6 +105,20 @@ func (uc *GenerateDocumentUseCase) Execute(
 	}
 	docType := docModel.NormalizeDocumentType(req.DocumentType)
 
+	if docType == docModel.DocumentTypeProductSpec && uc.productSpecReadinessUC != nil {
+		readiness, gateErr := uc.productSpecReadinessUC.Execute(ctx, workspaceID)
+		if gateErr != nil {
+			return nil, gateErr
+		}
+		if readiness != nil && !readiness.CanGenerate {
+			msg := "Product Spec üretimi için zorunlu proje bilgileri eksik"
+			if len(readiness.BlockingIssues) > 0 && strings.TrimSpace(readiness.BlockingIssues[0].Message) != "" {
+				msg = readiness.BlockingIssues[0].Message
+			}
+			return nil, domainErr.New(domainErr.ErrValidation, msg, nil)
+		}
+	}
+
 	wsCtx, err := uc.contextBuilder.Build(ctx, workspaceID, BuildContextOptions{
 		LanguageOverride: req.Language,
 	})
@@ -106,6 +134,11 @@ func (uc *GenerateDocumentUseCase) Execute(
 	prompt, err := uc.promptBuilder.Build(wsCtx, docType)
 	if err != nil {
 		return nil, domainErr.New(domainErr.ErrInternal, "failed to build prompt", err)
+	}
+	if docType == docModel.DocumentTypeProductSpec {
+		prompt.MaxTokens = 4096
+		prompt.Temperature = 0.2
+		prompt.TopP = 0.9
 	}
 
 	answeredCount := 0
@@ -133,26 +166,73 @@ func (uc *GenerateDocumentUseCase) Execute(
 
 	start := time.Now()
 	telemetry.IncLLMInflight(ctx)
-	genResp, err := provider.Generate(ctx, prompt)
-	duration := time.Since(start)
-	telemetry.DecLLMInflight(ctx)
-	status := "success"
-	if err != nil {
-		status = "error"
-	}
-	telemetry.RecordLLMGeneration(ctx, provider.Name(), status, duration.Seconds())
-	// Log metadata only — never prompts, API keys, or full bodies.
-	uc.logger.Info("llm generate completed",
-		"provider", provider.Name(),
-		"organization_id", wsCtx.OrganizationID.String(),
-		"workspace_id", workspaceID.String(),
-		"duration_ms", duration.Milliseconds(),
-		"ok", err == nil,
-	)
-	if err != nil {
-		mapped := mapProviderGenerateError(err)
-		uc.persistFailedDocument(ctx, wsCtx, title, docType, createdBy, provider, mapped)
-		return nil, mapped
+
+	var genResp llm.GenerateResponse
+	var structuredMeta *dto.StructuredGenerationMeta
+	var structuredAttempt *structuredAttempt
+
+	if docType == docModel.DocumentTypeProductSpec && uc.isPeftTestOrg(wsCtx.OrganizationID) {
+		llmPrompt := llm.GenerateRequest{
+			SystemPrompt: prompt.SystemPrompt,
+			UserPrompt:   prompt.UserPrompt,
+			MaxTokens:    prompt.MaxTokens,
+			Temperature:  prompt.Temperature,
+			TopP:         prompt.TopP,
+			JSONMode:     true,
+		}
+		fallback := uc.fallbackProvider
+		if fallback == nil {
+			fallback = uc.defaultProvider
+		}
+		var structErr error
+		structuredAttempt, structErr = uc.generateProductSpecStructured(ctx, wsCtx.OrganizationID, provider, fallback, llmPrompt, wsCtx.Language)
+		duration := time.Since(start)
+		telemetry.DecLLMInflight(ctx)
+		status := "success"
+		if structErr != nil || structuredAttempt == nil || strings.TrimSpace(structuredAttempt.Markdown) == "" {
+			status = "error"
+		}
+		telemetry.RecordLLMGeneration(ctx, provider.Name(), status, duration.Seconds())
+		if structErr != nil {
+			mapped := mapProviderGenerateError(structErr)
+			uc.persistFailedDocument(ctx, wsCtx, title, docType, createdBy, provider, mapped)
+			return nil, mapped
+		}
+		genResp = llm.GenerateResponse{
+			Content:  structuredAttempt.Markdown,
+			Provider: structuredAttempt.ProviderName,
+			Model:    structuredAttempt.ModelName,
+		}
+		structuredMeta = toStructuredGenerationDTO(structuredAttempt)
+		if structuredAttempt.UsedFallback {
+			uc.logger.Info("structured generation used base fallback",
+				"organization_id", wsCtx.OrganizationID.String(),
+				"workspace_id", workspaceID.String(),
+				"reason", structuredAttempt.FallbackReason,
+			)
+		}
+	} else {
+		var err error
+		genResp, err = provider.Generate(ctx, prompt)
+		duration := time.Since(start)
+		telemetry.DecLLMInflight(ctx)
+		status := "success"
+		if err != nil {
+			status = "error"
+		}
+		telemetry.RecordLLMGeneration(ctx, provider.Name(), status, duration.Seconds())
+		uc.logger.Info("llm generate completed",
+			"provider", provider.Name(),
+			"organization_id", wsCtx.OrganizationID.String(),
+			"workspace_id", workspaceID.String(),
+			"duration_ms", duration.Milliseconds(),
+			"ok", err == nil,
+		)
+		if err != nil {
+			mapped := mapProviderGenerateError(err)
+			uc.persistFailedDocument(ctx, wsCtx, title, docType, createdBy, provider, mapped)
+			return nil, mapped
+		}
 	}
 
 	doc := &docModel.GeneratedDocument{
@@ -177,7 +257,9 @@ func (uc *GenerateDocumentUseCase) Execute(
 	if err := uc.docRepo.Create(ctx, doc); err != nil {
 		return nil, err
 	}
-	return toDocumentInfo(doc), nil
+	info := toDocumentInfo(doc)
+	info.StructuredGeneration = structuredMeta
+	return info, nil
 }
 
 func (uc *GenerateDocumentUseCase) resolveProvider(ctx context.Context, orgID uuid.UUID) (llm.LLMProvider, error) {

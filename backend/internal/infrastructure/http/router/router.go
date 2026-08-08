@@ -19,12 +19,12 @@ import (
 	"github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/health"
 	iamHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/iam"
 	llmsettingsHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/llmsettings"
+	mcpHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/mcp"
 	observeHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/observe"
 	projectprofileHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/projectprofile"
 	questionnaireHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/questionnaire"
 	realtimeHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/realtime"
 	tenantHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/tenant"
-	mcpHandler "github.com/masterfabric-go/masterfabric/internal/infrastructure/http/handler/mcp"
 
 	// Services & middleware
 	iamRepo "github.com/masterfabric-go/masterfabric/internal/domain/iam/repository"
@@ -284,6 +284,7 @@ func New(deps Dependencies) *chi.Mux {
 				if deps.GenerationHandler != nil {
 					r.Route("/documents", func(r chi.Router) {
 						r.With(maybeRequirePermission(deps.RBACService, "document:read")).Get("/", deps.GenerationHandler.ListDocuments)
+						r.With(maybeRequirePermission(deps.RBACService, "document:read")).Get("/product-spec-readiness", deps.GenerationHandler.ProductSpecReadiness)
 						r.With(maybeRequirePermission(deps.RBACService, "generation:run")).Post("/generate", deps.GenerationHandler.GenerateDocument)
 						r.With(maybeRequirePermission(deps.RBACService, "document:read")).Get("/{documentId}", deps.GenerationHandler.GetDocument)
 						r.With(maybeRequirePermission(deps.RBACService, "generation:run")).Post("/{documentId}/regenerate", deps.GenerationHandler.RegenerateDocument)

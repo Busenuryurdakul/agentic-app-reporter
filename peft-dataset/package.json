@@ -1,0 +1,15 @@
+{
+  "name": "peft-dataset",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Bağımsız sentetik PEFT instruction fine-tuning dataset üretim ve analiz aracı",
+  "type": "module",
+  "scripts": {
+    "dataset:generate": "node scripts/generate_dataset.mjs",
+    "dataset:analyze": "node scripts/analyze_dataset.mjs --dataset-dir=data/output",
+    "dataset:build": "npm run dataset:generate -- --force && npm run dataset:analyze",
+    "dataset:expand-v2": "node scripts/build_v2_expansion.mjs",
+    "dataset:v2": "npm run dataset:expand-v2 && npm run dataset:build",
+    "dataset:quality-fix": "node scripts/build_scenario_data.mjs && node scripts/build_v2_expansion.mjs && npm run dataset:build && node scripts/manual_quality_gate.mjs"
+  }
+}

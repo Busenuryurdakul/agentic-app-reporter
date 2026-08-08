@@ -184,12 +184,20 @@ func (uc *ExportPEFTDatasetUseCase) processCandidate(
 		return exportdto.DatasetRow{}, true, exportdto.SkipAssistantSecret, "assistant body matched secret pattern"
 	}
 
+	if opts.ExcludeSmokeMarkers && containsSmokeDatasetMarker(doc.MarkdownBody) {
+		return exportdto.DatasetRow{}, true, exportdto.SkipSmokeTestMarker, "assistant body contains smoke test marker"
+	}
+
 	if uc.promptAssembler == nil {
 		return exportdto.DatasetRow{}, true, exportdto.SkipInvalidRow, "prompt assembler not configured"
 	}
 	prompt, err := uc.promptAssembler.Build(wsCtx, docModel.DocumentTypeProductSpec)
 	if err != nil {
 		return exportdto.DatasetRow{}, true, exportdto.SkipInvalidRow, err.Error()
+	}
+
+	if opts.ExcludeSmokeMarkers && containsSmokeDatasetMarker(prompt.SystemPrompt, prompt.UserPrompt) {
+		return exportdto.DatasetRow{}, true, exportdto.SkipSmokeTestMarker, "rebuilt prompt contains smoke test marker"
 	}
 
 	row := exportdto.DatasetRow{
@@ -274,6 +282,11 @@ func dedupeRows(rows []builtRow, mode exportdto.DedupeMode) ([]builtRow, []expor
 }
 
 func splitRows(rows []builtRow, salt string, ratio float64) ([]exportdto.DatasetRow, []exportdto.DatasetRow) {
+	// Single-row exports always land in train so smoke/small datasets remain usable.
+	if len(rows) == 1 {
+		return []exportdto.DatasetRow{rows[0].row}, nil
+	}
+
 	train := make([]exportdto.DatasetRow, 0, len(rows))
 	val := make([]exportdto.DatasetRow, 0)
 	for _, item := range rows {

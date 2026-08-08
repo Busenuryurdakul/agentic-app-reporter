@@ -103,11 +103,13 @@ func CountPresentSections(body, language string) int {
 	if body == "" {
 		return 0
 	}
+	if strings.HasPrefix(body, StructuredMarkdownPrefix) {
+		return CountStructuredHeadings(body, language)
+	}
 	lower := strings.ToLower(body)
 	count := 0
 	for _, id := range RequiredSections {
 		heading := strings.ToLower(Heading(id, language))
-		// Match heading text without requiring exact ## prefix (models may vary slightly).
 		title := strings.TrimPrefix(heading, "## ")
 		if strings.Contains(lower, strings.ToLower(title)) {
 			count++

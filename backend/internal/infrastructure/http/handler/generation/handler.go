@@ -17,12 +17,13 @@ import (
 
 // Handler exposes generation / LLM / document HTTP endpoints.
 type Handler struct {
-	providerHealthUC     *usecase.ProviderHealthUseCase
-	generateDocumentUC   *usecase.GenerateDocumentUseCase
-	regenerateDocumentUC *usecase.RegenerateDocumentUseCase
-	listDocumentsUC      *usecase.ListDocumentsUseCase
-	getDocumentUC        *usecase.GetDocumentUseCase
-	approveDocumentUC    *usecase.ApproveDocumentUseCase
+	providerHealthUC       *usecase.ProviderHealthUseCase
+	generateDocumentUC     *usecase.GenerateDocumentUseCase
+	regenerateDocumentUC   *usecase.RegenerateDocumentUseCase
+	listDocumentsUC        *usecase.ListDocumentsUseCase
+	getDocumentUC          *usecase.GetDocumentUseCase
+	approveDocumentUC      *usecase.ApproveDocumentUseCase
+	productSpecReadinessUC *usecase.ProductSpecReadinessUseCase
 }
 
 // NewHandler creates a generation Handler. Document use-cases may be nil when DB is unavailable.
@@ -33,14 +34,16 @@ func NewHandler(
 	listDocumentsUC *usecase.ListDocumentsUseCase,
 	getDocumentUC *usecase.GetDocumentUseCase,
 	approveDocumentUC *usecase.ApproveDocumentUseCase,
+	productSpecReadinessUC *usecase.ProductSpecReadinessUseCase,
 ) *Handler {
 	return &Handler{
-		providerHealthUC:     providerHealthUC,
-		generateDocumentUC:   generateDocumentUC,
-		regenerateDocumentUC: regenerateDocumentUC,
-		listDocumentsUC:      listDocumentsUC,
-		getDocumentUC:        getDocumentUC,
-		approveDocumentUC:    approveDocumentUC,
+		providerHealthUC:       providerHealthUC,
+		generateDocumentUC:     generateDocumentUC,
+		regenerateDocumentUC:   regenerateDocumentUC,
+		listDocumentsUC:        listDocumentsUC,
+		getDocumentUC:          getDocumentUC,
+		approveDocumentUC:      approveDocumentUC,
+		productSpecReadinessUC: productSpecReadinessUC,
 	}
 }
 
@@ -78,6 +81,25 @@ func (h *Handler) GenerateDocument(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.JSON(w, http.StatusCreated, doc)
+}
+
+// ProductSpecReadiness handles GET /api/v1/workspaces/{workspaceId}/documents/product-spec-readiness.
+func (h *Handler) ProductSpecReadiness(w http.ResponseWriter, r *http.Request) {
+	if h.productSpecReadinessUC == nil {
+		response.JSON(w, http.StatusServiceUnavailable, map[string]string{"error": "product spec readiness unavailable"})
+		return
+	}
+	workspaceID, err := uuid.Parse(chi.URLParam(r, "workspaceId"))
+	if err != nil {
+		response.JSON(w, http.StatusBadRequest, map[string]string{"error": "invalid workspace id"})
+		return
+	}
+	result, err := h.productSpecReadinessUC.Execute(r.Context(), workspaceID)
+	if err != nil {
+		response.Error(w, err)
+		return
+	}
+	response.JSON(w, http.StatusOK, result)
 }
 
 // RegenerateDocument handles POST /api/v1/workspaces/{workspaceId}/documents/{documentId}/regenerate.

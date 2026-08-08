@@ -1,0 +1,74 @@
+[
+  {
+    "id": "eval-001",
+    "category": "product_spec",
+    "instruction": "Yerel esnaf için dijital vitrin ve online sipariş uygulaması için ürün spesifikasyonu hazırla.",
+    "input": "Hedef: Mahalle bakkal ve kasaplarının WhatsApp yerine tek panelden sipariş alması. Mobil öncelikli, basit arayüz."
+  },
+  {
+    "id": "eval-002",
+    "category": "product_spec",
+    "instruction": "Üniversite öğrencilerine yönelik grup ders çalışması eşleştirme uygulaması için spec yaz.",
+    "input": "Özellikler: ders seçimi, müsaitlik takvimi, anonim eşleşme, kampüs içi buluşma noktası önerisi."
+  },
+  {
+    "id": "eval-003",
+    "category": "project_planning",
+    "instruction": "12 haftalık MVP teslim planı oluştur.",
+    "input": "Ekip: 1 PM, 3 geliştirici, 1 tasarımcı. Ürün: mikro öğrenme mobil uygulaması. App Store hedefi var."
+  },
+  {
+    "id": "eval-004",
+    "category": "project_planning",
+    "instruction": "Legacy sistemden cloud migrasyon projesi için faz planı yaz.",
+    "input": "Monolith Java uygulaması, 200 TB veri, kesintisiz geçiş zorunlu, 9 aylık bütçe."
+  },
+  {
+    "id": "eval-005",
+    "category": "requirement_analysis",
+    "instruction": "Aşağıdaki kullanıcı geri bildirimlerinden fonksiyonel gereksinim çıkar.",
+    "input": "Kullanıcılar gece modu, fatura geçmişi PDF indirme ve iki adımlı doğrulama istiyor. Destek ekibi toplu kullanıcı askıya alma talep ediyor."
+  },
+  {
+    "id": "eval-006",
+    "category": "requirement_analysis",
+    "instruction": "Belirsiz NFR ifadelerini ölçülebilir gereksinimlere dönüştür.",
+    "input": "Sistem stabil olmalı, hızlı açılmalı, güvenli olmalı ve ölçeklenebilir olmalı."
+  },
+  {
+    "id": "eval-007",
+    "category": "technical_documentation",
+    "instruction": "Webhook retry mekanizması için teknik dokümantasyon yaz.",
+    "input": "Olaylar: payment.succeeded, payment.failed. Tüketiciler harici ERP. Exponential backoff kullanılacak."
+  },
+  {
+    "id": "eval-008",
+    "category": "technical_documentation",
+    "instruction": "Feature flag mimarisini dokümante et.",
+    "input": "LaunchDarkly benzeri in-house çözüm, boolean ve yüzdelik rollout, audit log zorunlu."
+  },
+  {
+    "id": "eval-009",
+    "category": "risk_analysis",
+    "instruction": "Üçüncü parti ödeme sağlayıcı entegrasyonu için risk analizi yap.",
+    "input": "Yeni PSP'ye geçiş 6 haftada tamamlanmalı. Mevcut abonelikler etkilenmemeli."
+  },
+  {
+    "id": "eval-010",
+    "category": "risk_analysis",
+    "instruction": "Generative AI özelliği eklemenin ürün risklerini değerlendir.",
+    "input": "Müşteri destek chatbot'una otomatik cevap taslağı özelliği eklenecek."
+  },
+  {
+    "id": "eval-011",
+    "category": "user_story",
+    "instruction": "Kabul kriterleriyle birlikte user story yaz.",
+    "input": "Rol: Lojistik planlayıcı. İhtiyaç: teslimat rotalarını harita üzerinde sürükle-bırak ile düzenlemek."
+  },
+  {
+    "id": "eval-012",
+    "category": "user_story",
+    "instruction": "Regresyon önleyici test user story'si oluştur.",
+    "input": "Modül: fiyatlandırma motoru. Geçmişte KDV hesaplama hatası yaşandı, tekrar etmemeli."
+  }
+]

@@ -45,6 +45,7 @@ func run(args []string) int {
 	dryRun := fs.Bool("dry-run", false, "write manifest only, skip JSONL files")
 	writeSkipped := fs.Bool("write-skipped", false, "write skipped.jsonl when rows were skipped")
 	scanSecrets := fs.Bool("scan-assistant-secrets", false, "reject assistant bodies matching secret patterns")
+	excludeSmoke := fs.Bool("exclude-smoke-markers", false, "skip rows tagged with [[PEFT_SMOKE_TEST]] smoke marker")
 	force := fs.Bool("force", false, "overwrite non-empty out-dir")
 	verbose := fs.Bool("verbose", false, "log skip reasons to stderr")
 
@@ -70,6 +71,7 @@ func run(args []string) int {
 		DryRun:                     *dryRun,
 		WriteSkipped:               *writeSkipped,
 		ScanAssistantSecrets:       *scanSecrets,
+		ExcludeSmokeMarkers:        *excludeSmoke,
 	}
 	if mode, err := parseDedupeMode(*dedupe); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)

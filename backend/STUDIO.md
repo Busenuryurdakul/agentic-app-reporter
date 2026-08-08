@@ -169,6 +169,25 @@ Plan: `docs/issues/peft-dataset-export-phase-ab.md`, schema: `docs/product-spec-
 PEFT integration smoke: `node ./scripts/smoke_peft_export.mjs` (Phase D; requires approved `product_spec` rows).
 Seed without SQL patch: `node ./scripts/smoke_peft_seed.mjs --no-sql-patch`.
 
+### Fine-tune (Unsloth LoRA — offline GPU)
+
+Export sonrası Gemma 2B LoRA eğitimi: `deployments/finetune/README.md`
+
+```bash
+make finetune-validate-dataset DATASET_DIR=./peft-export
+make finetune-analyze-dataset DATASET_DIR=./peft-export
+node ./scripts/analyze_peft_dataset.mjs --dataset-dir=./peft-export
+node ./scripts/smoke_peft_batch_seed.mjs --count=12
+# GPU host:
+python deployments/finetune/train_lora.py --dataset-dir ./peft-export --output-dir ./output --force
+```
+
+Production export (exclude smoke-tagged rows):
+
+```bash
+go run ./cmd/export-peft-dataset --org-id=<PROD_ORG> --exclude-smoke-markers --out-dir=./peft-export
+```
+
 Render production deploy: `node ./scripts/trigger_render_deploy.mjs` then `node ./scripts/verify_render_deploy.mjs`.
 
 ### Smoke

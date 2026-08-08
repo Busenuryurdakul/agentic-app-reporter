@@ -1,4 +1,4 @@
-.PHONY: build run test lint migrate migrate-down docker-up docker-down compose-up-full compose-up-mlc-gpu compose-down-mlc-gpu compose-down-full compose-monitoring-native compose-scale-api verify-mlc verify-hybrid llm-hybrid export-peft-dataset k8s-apply k8s-delete clean help
+.PHONY: build run test lint migrate migrate-down docker-up docker-down compose-up-full compose-up-mlc-gpu compose-down-mlc-gpu compose-down-full compose-monitoring-native compose-scale-api verify-mlc verify-hybrid llm-hybrid export-peft-dataset finetune-validate-dataset finetune-analyze-dataset k8s-apply k8s-delete clean help
 
 APP_NAME := masterfabric
 BUILD_DIR := bin
@@ -167,6 +167,18 @@ seed-questionnaire:
 export-peft-dataset:
 	@test -n "$(ORG_ID)" || (echo "Set ORG_ID=<organization-uuid>" && exit 1)
 	go run ./cmd/export-peft-dataset --org-id=$(ORG_ID) --out-dir=$(or $(OUT_DIR),./peft-export) $(ARGS)
+
+## finetune-validate-dataset: Validate PEFT JSONL for Unsloth training (no GPU)
+finetune-validate-dataset:
+	python deployments/finetune/train_lora.py --dataset-dir=$(or $(DATASET_DIR),./peft-export) --dry-run
+
+## finetune-analyze-dataset: Quality report for PEFT export JSONL
+finetune-analyze-dataset:
+	python deployments/finetune/analyze_dataset.py --dataset-dir=$(or $(DATASET_DIR),./peft-export)
+
+## finetune-analyze-dataset-node: Same as above via Node (Docker Python fallback)
+finetune-analyze-dataset-node:
+	node scripts/analyze_peft_dataset.mjs --dataset-dir=$(or $(DATASET_DIR),./peft-export)
 
 ## test-integration: Postgres integration tests (requires local Docker postgres)
 test-integration:

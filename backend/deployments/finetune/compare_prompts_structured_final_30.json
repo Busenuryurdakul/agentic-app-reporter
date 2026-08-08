@@ -1,0 +1,147 @@
+{
+  "purpose": "Structured production pipeline evaluation (base vs full LoRA)",
+  "base_model": "unsloth/gemma-2-2b-it-bnb-4bit",
+  "adapter_dir": "../../training-output/lora-full-final-30/lora_adapter",
+  "language": "tr",
+  "chat_template": "gemma2",
+  "generation": {
+    "seed": 3407,
+    "max_new_tokens": 8192,
+    "temperature": 0.2,
+    "repair_temperature": 0.1,
+    "top_p": 1.0,
+    "do_sample": false
+  },
+  "scenarios": [
+    {
+      "id": "municipal-field-ops",
+      "profile": {
+        "project_name": "Belediye Saha Operasyon Platformu",
+        "project_description": "Belediye saha ekipleri için görev, arıza ve SLA takibi; web ve mobil erişim.",
+        "product_type": "Web ve mobil uygulama",
+        "target_users": "Saha teknisyeni, ekip şefi, belediye operasyon yöneticisi",
+        "main_problem": "Saha görevleri ve arıza kayıtları dağınık kanallarda; SLA ihlalleri geç fark ediliyor.",
+        "main_use_cases": "Görev atama; arıza kaydı; SLA takibi; saha fotoğrafı yükleme",
+        "project_status": "mvp"
+      },
+      "answers": [
+        { "title": "Proje adı nedir?", "value": "Belediye Saha Operasyon Platformu" },
+        { "title": "Projeyi kısaca açıklayın", "value": "Saha ekipleri görev ve arıza takibi; web/mobil; SLA ve fotoğraf kanıtı." },
+        { "title": "Ürün tipi nedir?", "value": "Web ve mobil uygulama" },
+        { "title": "Proje hangi aşamada?", "value": "mvp" },
+        { "title": "Birincil kullanıcı kitlesi kim?", "value": "Saha teknisyeni, ekip şefi" },
+        { "title": "İş alanı / domain nedir?", "value": "Kamu / belediye operasyonları" },
+        { "title": "Başarı metrikleri nelerdir?", "value": "SLA ihlali %15 azaltma; ortalama müdahale süresi 4 saat altı" },
+        { "title": "Bilinen kısıtlar nelerdir?", "value": "Offline saha senaryoları; sınırlı mobil bant genişliği" },
+        { "title": "Dokümantasyon dili tercihi", "value": "tr" },
+        { "title": "Sistemdeki ana roller neler?", "value": "Teknisyen, Ekip Şefi, Operasyon Yöneticisi" },
+        { "title": "Yetki modeli nedir?", "value": "Rol tabanlı erişim kontrolü (RBAC)" },
+        { "title": "Frontend uygulaması var mı?", "value": "Evet" },
+        { "title": "Frontend framework / runtime", "value": "react" },
+        { "title": "Backend servisi var mı?", "value": "Evet" },
+        { "title": "Backend dili", "value": "go" },
+        { "title": "Mimari stil", "value": "Modüler monolith mimari" },
+        { "title": "Birincil veritabanı", "value": "PostgreSQL" },
+        { "title": "PII / hassas veri saklanıyor mu?", "value": "Evet" },
+        { "title": "Kimlik doğrulama zorunlu mu?", "value": "Evet" },
+        { "title": "Kimlik doğrulama yöntemleri", "value": "password; oauth2" },
+        { "title": "Tehdit modeli / güvenlik gereksinimleri tanımlı mı?", "value": "Evet" }
+      ]
+    },
+    {
+      "id": "health-appointment-portal",
+      "profile": {
+        "project_name": "MedNova Randevu ve Telehealth Portalı",
+        "project_description": "Özel sağlık grubu için hasta self-servis randevu, telehealth ve e-reçete entegrasyonu.",
+        "product_type": "Web uygulaması",
+        "target_users": "Hasta, hekim, resepsiyon personeli",
+        "main_problem": "Randevu ve telehealth süreçleri parçalı; KVKK uyumu ve e-reçete entegrasyonu zor.",
+        "main_use_cases": "Randevu alma; telehealth görüşme; e-reçete; doktor takvimi",
+        "project_status": "mvp"
+      },
+      "answers": [
+        { "title": "Proje adı nedir?", "value": "MedNova Randevu ve Telehealth Portalı" },
+        { "title": "Projeyi kısaca açıklayın", "value": "Hasta self-servis, doktor takvimi, KVKK uyumu, e-reçete." },
+        { "title": "Ürün tipi nedir?", "value": "Web uygulaması" },
+        { "title": "Birincil kullanıcı kitlesi kim?", "value": "Hasta, hekim" },
+        { "title": "İş alanı / domain nedir?", "value": "Sağlık / telehealth" },
+        { "title": "Başarı metrikleri nelerdir?", "value": "No-show oranı %10 azaltma; telehealth oturum tamamlama %85" },
+        { "title": "Bilinen kısıtlar nelerdir?", "value": "KVKK ve sağlık verisi saklama zorunlulukları" },
+        { "title": "Dokümantasyon dili tercihi", "value": "tr" },
+        { "title": "PII / hassas veri saklanıyor mu?", "value": "Evet" },
+        { "title": "Kimlik doğrulama yöntemleri", "value": "password; oauth2; sms_otp" },
+        { "title": "Mimari stil", "value": "Modüler monolith mimari" },
+        { "title": "Birincil veritabanı", "value": "PostgreSQL" },
+        { "title": "Tehdit modeli / güvenlik gereksinimleri tanımlı mı?", "value": "Evet" }
+      ]
+    },
+    {
+      "id": "warehouse-wms-lite",
+      "profile": {
+        "project_name": "DepoLite WMS",
+        "project_description": "KOBİ depolar için barkod, stok sayımı, sevkiyat dalgası ve ERP CSV entegrasyonu.",
+        "product_type": "Web uygulaması",
+        "target_users": "Depo sorumlusu, sevkiyat planlayıcı, depo operatörü",
+        "main_problem": "Stok ve sevkiyat planlama Excel ve kağıt süreçlerinde; hata oranı yüksek.",
+        "main_use_cases": "Barkod okuma; stok sayımı; sevkiyat dalgası; ERP CSV import/export",
+        "project_status": "mvp"
+      },
+      "answers": [
+        { "title": "Proje adı nedir?", "value": "DepoLite WMS" },
+        { "title": "Projeyi kısaca açıklayın", "value": "Hafif WMS: barkod, sayım, dalga planlama, ERP CSV." },
+        { "title": "Ürün tipi nedir?", "value": "Web uygulaması" },
+        { "title": "İş alanı / domain nedir?", "value": "Lojistik / depo yönetimi" },
+        { "title": "Başarı metrikleri nelerdir?", "value": "Sayım hatası %30 azaltma; dalga hazırlık süresi %20 kısalma" },
+        { "title": "Bilinen kısıtlar nelerdir?", "value": "Eski ERP sürümleri yalnızca CSV destekliyor" },
+        { "title": "Mimari stil", "value": "Modüler monolith mimari" },
+        { "title": "Birincil veritabanı", "value": "PostgreSQL" },
+        { "title": "Kimlik doğrulama zorunlu mu?", "value": "Evet" }
+      ]
+    },
+    {
+      "id": "ai-support-copilot",
+      "profile": {
+        "project_name": "SupportPilot RAG Copilot",
+        "project_description": "B2B SaaS destek ekibi için RAG tabanlı ticket assist, önerilen yanıt ve bilgi tabanı senkronizasyonu.",
+        "product_type": "Web uygulaması",
+        "target_users": "Destek temsilcisi, destek yöneticisi, bilgi tabanı editörü",
+        "main_problem": "Ticket yanıt süreleri uzun; bilgi tabanı güncel değil; agent onay akışı yok.",
+        "main_use_cases": "Ticket assist; önerilen yanıt; KB senkronizasyonu; agent onay akışı",
+        "project_status": "mvp"
+      },
+      "answers": [
+        { "title": "Proje adı nedir?", "value": "SupportPilot RAG Copilot" },
+        { "title": "Projeyi kısaca açıklayın", "value": "RAG tabanlı destek copilot: ticket assist, önerilen yanıt, KB sync, onay akışı." },
+        { "title": "İş alanı / domain nedir?", "value": "B2B SaaS / müşteri desteği" },
+        { "title": "Başarı metrikleri nelerdir?", "value": "İlk yanıt süresi %25 azaltma; agent kabul oranı %70" },
+        { "title": "Bilinen kısıtlar nelerdir?", "value": "RAG = Retrieval-Augmented Generation; harici vektör DB gerekli" },
+        { "title": "Mimari stil", "value": "Modüler monolith + vektör arama servisi" },
+        { "title": "Birincil veritabanı", "value": "PostgreSQL" },
+        { "title": "PII / hassas veri saklanıyor mu?", "value": "Evet" },
+        { "title": "Tehdit modeli / güvenlik gereksinimleri tanımlı mı?", "value": "Evet" }
+      ]
+    },
+    {
+      "id": "fleet-ev-charging",
+      "profile": {
+        "project_name": "FleetCharge Yönetim Paneli",
+        "project_description": "Filolar için EV şarj istasyonu durumu, tarife, sürücü kartları ve enerji maliyet raporu.",
+        "product_type": "Web uygulaması",
+        "target_users": "Filo yöneticisi, operasyon analisti, saha teknisyeni",
+        "main_problem": "Şarj istasyonu kullanımı ve enerji maliyeti görünür değil; tarife yönetimi manuel.",
+        "main_use_cases": "İstasyon durumu; tarife yönetimi; sürücü kartları; enerji maliyet raporu",
+        "project_status": "mvp"
+      },
+      "answers": [
+        { "title": "Proje adı nedir?", "value": "FleetCharge Yönetim Paneli" },
+        { "title": "Projeyi kısaca açıklayın", "value": "EV şarj istasyonu yönetimi: durum, tarife, kartlar, maliyet raporu." },
+        { "title": "İş alanı / domain nedir?", "value": "Filo / EV şarj altyapısı" },
+        { "title": "Başarı metrikleri nelerdir?", "value": "Boşta şarj süresi %20 azaltma; aylık enerji maliyeti görünürlüğü" },
+        { "title": "Bilinen kısıtlar nelerdir?", "value": "OCPI entegrasyonu faz 2 sonrası" },
+        { "title": "Mimari stil", "value": "Modüler monolith mimari" },
+        { "title": "Birincil veritabanı", "value": "PostgreSQL" },
+        { "title": "Kimlik doğrulama yöntemleri", "value": "password; oauth2" }
+      ]
+    }
+  ]
+}

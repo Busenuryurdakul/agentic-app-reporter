@@ -6,6 +6,23 @@ import (
 	"github.com/masterfabric-go/masterfabric/internal/domain/document/quality"
 )
 
+func toStructuredGenerationDTO(attempt *structuredAttempt) *dto.StructuredGenerationMeta {
+	if attempt == nil {
+		return nil
+	}
+	return &dto.StructuredGenerationMeta{
+		StructuredOutputValid:    attempt.Meta.StructuredOutputValid,
+		StructuredRepairAttempts: attempt.Meta.StructuredRepairAttempts,
+		JSONParseSucceeded:       attempt.Meta.JSONParseSucceeded,
+		MarkdownRenderSucceeded:  attempt.Meta.MarkdownRenderSucceeded,
+		RequiredFieldCoverage:    attempt.Meta.RequiredFieldCoverage,
+		QualityGatePassed:        attempt.Gate.Passed,
+		QualityGateReasons:       attempt.Gate.Reasons,
+		UsedFallback:             attempt.UsedFallback,
+		FallbackReason:           attempt.FallbackReason,
+	}
+}
+
 func toDocumentInfo(doc *model.GeneratedDocument) *dto.DocumentInfo {
 	if doc == nil {
 		return nil
@@ -59,6 +76,23 @@ func toDocumentSummary(doc *model.GeneratedDocument) dto.DocumentSummary {
 }
 
 func toDocumentQuality(doc *model.GeneratedDocument) dto.DocumentQuality {
+	if model.NormalizeDocumentType(doc.DocumentType) == model.DocumentTypeProductSpec {
+		eval := quality.EvaluateProductSpec(doc.MarkdownBody, doc.Language)
+		return dto.DocumentQuality{
+			HasHeading:            eval.HasHeading,
+			MinLengthOK:           eval.MinLengthOK,
+			LanguageDeclared:      eval.LanguageDeclared,
+			SectionCoverageOK:     eval.SectionCoverageOK,
+			QualityScore:          eval.QualityScore,
+			SectionCoverage:       eval.SectionCoverage,
+			ExpectedSections:      eval.ExpectedSections,
+			DuplicateTextDetected: eval.DuplicateTextDetected,
+			PlaceholderDetected:   eval.PlaceholderDetected,
+			MarkdownValid:         eval.MarkdownValid,
+			QualityStatus:         eval.QualityStatus,
+			Issues:                eval.Issues,
+		}
+	}
 	s := quality.EvaluateForType(doc.MarkdownBody, doc.Language, doc.DocumentType)
 	return dto.DocumentQuality{
 		HasHeading:        s.HasHeading,

@@ -33,6 +33,9 @@ type LLMConfig struct {
 	MaxRetries            int
 	AllowMockInProduction bool
 	EncryptionKey         string // AES key material for org provider_api_key_enc (falls back to JWT_SECRET)
+	PeftTestOrgID         string // optional; enables structured adapter path for one org only
+	PeftFallbackBaseURL   string // base model OpenAI-compatible endpoint for adapter fallback
+	PeftFallbackModel     string // base model name for adapter fallback
 }
 
 // IsProduction reports whether the process is running in a production-like environment.
@@ -191,6 +194,9 @@ func Load() *Config {
 			MaxRetries:            envOrDefaultInt("LLM_MAX_RETRIES", 2),
 			AllowMockInProduction: envOrDefault("LLM_ALLOW_MOCK_IN_PRODUCTION", "false") == "true",
 			EncryptionKey:         envOrDefault("LLM_ENCRYPTION_KEY", ""),
+			PeftTestOrgID:         envOrDefault("PEFT_TEST_ORG_ID", "4eda8bd6-7bd3-474c-8e06-267d4a9d0fe8"),
+			PeftFallbackBaseURL:   envOrDefault("PEFT_FALLBACK_BASE_URL", envOrDefault("LLM_BASE_URL", "")),
+			PeftFallbackModel:     envOrDefault("PEFT_FALLBACK_MODEL", envOrDefault("LLM_MODEL", "")),
 		},
 		Log: LogConfig{
 			Level:  envOrDefault("LOG_LEVEL", "info"),
@@ -319,6 +325,15 @@ func isHuggingFaceInferenceHost(host string) bool {
 	default:
 		return strings.HasSuffix(host, ".huggingface.co")
 	}
+}
+
+// IsHuggingFaceInferenceBaseURL reports whether baseURL targets Hugging Face Inference.
+func IsHuggingFaceInferenceBaseURL(baseURL string) bool {
+	u, err := url.Parse(strings.TrimSpace(baseURL))
+	if err != nil || u.Hostname() == "" {
+		return false
+	}
+	return isHuggingFaceInferenceHost(strings.ToLower(u.Hostname()))
 }
 
 // SanitizedLLMBaseURLHost returns the hostname for logs (never includes credentials or query params).

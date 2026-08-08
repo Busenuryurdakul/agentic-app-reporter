@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 
@@ -48,6 +49,7 @@ import (
 	exportUC "github.com/masterfabric-go/masterfabric/internal/application/export/usecase"
 	generationUC "github.com/masterfabric-go/masterfabric/internal/application/generation/usecase"
 	iamUC "github.com/masterfabric-go/masterfabric/internal/application/iam/usecase"
+	"github.com/masterfabric-go/masterfabric/internal/domain/llm"
 	llmsettingsUC "github.com/masterfabric-go/masterfabric/internal/application/llmsettings/usecase"
 	observeUC "github.com/masterfabric-go/masterfabric/internal/application/observe/usecase"
 	projectprofileUC "github.com/masterfabric-go/masterfabric/internal/application/projectprofile/usecase"
@@ -295,7 +297,7 @@ func buildDependencies(
 	deps.LLMProvider = llmProvider
 	providerHealthUC := generationUC.NewProviderHealthUseCase(llmProvider, cfg.LLM.Enabled)
 	// Document use-cases are wired after DB repos are available; health works without DB.
-	deps.GenerationHandler = generationHandler.NewHandler(providerHealthUC, nil, nil, nil, nil, nil)
+	deps.GenerationHandler = generationHandler.NewHandler(providerHealthUC, nil, nil, nil, nil, nil, nil)
 	log.Info("llm provider configured",
 		"provider", llmProvider.Name(),
 		"enabled", cfg.LLM.Enabled,
@@ -394,16 +396,42 @@ func buildDependencies(
 	promptBuilder := generationUC.NewPromptBuilder()
 	lockTTL := time.Duration(cfg.LLM.TimeoutSeconds+30) * time.Second
 	generationLocker := generationUC.NewGenerationLocker(redisClient, lockTTL)
+
+	// Phase 4 S1: readiness + observe summary (deterministic; reuses completeness + missing-info)
+	readinessUC := observeUC.NewReadinessUseCase(completenessUC, missingInformationUC, documentRepo, workspaceRepo)
+	productSpecReadinessUC := generationUC.NewProductSpecReadinessUseCase(readinessUC, getProfileUC)
+
+	var peftFallbackProvider llm.LLMProvider = llmProvider
+	if fbURL := strings.TrimSpace(cfg.LLM.PeftFallbackBaseURL); fbURL != "" {
+		fbCfg := cfg.LLM
+		fbCfg.BaseURL = fbURL
+		if m := strings.TrimSpace(cfg.LLM.PeftFallbackModel); m != "" {
+			fbCfg.Model = m
+		}
+		if fbProvider, fbErr := infraLLM.NewProvider(fbCfg); fbErr == nil {
+			peftFallbackProvider = fbProvider
+		} else {
+			log.Warn("peft fallback provider init failed; using env default provider", "error", fbErr)
+		}
+	}
+	peftTestOrgID := uuid.Nil
+	if raw := strings.TrimSpace(cfg.LLM.PeftTestOrgID); raw != "" {
+		if parsed, parseErr := uuid.Parse(raw); parseErr == nil {
+			peftTestOrgID = parsed
+		} else {
+			log.Warn("invalid PEFT_TEST_ORG_ID", "value", raw, "error", parseErr)
+		}
+	}
+
 	generateDocumentUC := generationUC.NewGenerateDocumentUseCase(
-		contextBuilder, promptBuilder, orgLLMProviderResolver, llmProvider, documentRepo, generationLocker, cfg.LLM.Enabled, log,
+		contextBuilder, promptBuilder, orgLLMProviderResolver, llmProvider, peftFallbackProvider, peftTestOrgID,
+		documentRepo, generationLocker, productSpecReadinessUC, cfg.LLM.Enabled, log,
 	)
 	regenerateDocumentUC := generationUC.NewRegenerateDocumentUseCase(generateDocumentUC, documentRepo, workspaceRepo)
 	listDocumentsUC := generationUC.NewListDocumentsUseCase(documentRepo, workspaceRepo)
 	getDocumentUC := generationUC.NewGetDocumentUseCase(documentRepo, workspaceRepo)
 	approveDocumentUC := generationUC.NewApproveDocumentUseCase(documentRepo, workspaceRepo)
 
-	// Phase 4 S1: readiness + observe summary (deterministic; reuses completeness + missing-info)
-	readinessUC := observeUC.NewReadinessUseCase(completenessUC, missingInformationUC, documentRepo, workspaceRepo)
 	observeSummaryUC := observeUC.NewObserveSummaryUseCase(documentRepo, workspaceRepo)
 
 	// Phase 4 S5: sync Markdown / ZIP export (approved → succeeded fallback)
@@ -467,6 +495,7 @@ func buildDependencies(
 		listDocumentsUC,
 		getDocumentUC,
 		approveDocumentUC,
+		productSpecReadinessUC,
 	)
 	deps.ObserveHandler = observeHandler.NewHandler(readinessUC, observeSummaryUC)
 	deps.ExportHandler = exportHandler.NewHandler(exportPackageUC)
